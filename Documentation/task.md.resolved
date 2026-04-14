@@ -1,0 +1,424 @@
+# MySocial — Task Checklist الشامل
+
+> **طريقة العمل:** ننفذ مرحلة بمرحلة. كل مهمة تتحول من `[ ]` → `[/]` (جاري) → `[x]` (تم).
+> **قاعدة ذهبية:** لا ننتقل للمرحلة التالية إلا بعد اختبار المرحلة الحالية بالكامل.
+
+---
+
+## 🔧 معايير الجودة (تُطبق في كل مرحلة)
+
+- [ ] 🎭 Empty States — رسائل ترحيبية عندما لا توجد بيانات
+- [ ] ⏳ Loading Skeletons — أشكال تحميل بدلاً من شاشة فارغة
+- [ ] ❌ Error Handling — رسائل خطأ واضحة ومفيدة
+- [ ] ♿ Accessibility — تباين ألوان + aria-labels + keyboard navigation
+- [ ] 📱 Responsive — يعمل على Desktop + Tablet + Mobile
+- [ ] 🔄 RTL — يعمل بالعربية (right-to-left) بشكل صحيح
+- [ ] ✅ Build Test — `npm run build` ناجح بدون أخطاء
+
+---
+
+## Phase 1 — Foundation 🏗️
+
+### 1.1 إنشاء المشروع
+- [ ] إنشاء مشروع Next.js 15 مع App Router + TypeScript
+- [ ] تنظيف الملفات الافتراضية
+- [ ] إعداد هيكل المجلدات (src/app, components, lib, services, hooks, types, utils, stores, i18n)
+- [ ] إعداد `.env.local` مع المتغيرات الأساسية
+- [ ] إعداد `tsconfig.json` مع path aliases (@/components, @/lib, etc.)
+
+### 1.2 نظام التصميم (Design System)
+- [ ] إنشاء `globals.css` مع CSS Variables
+  - [ ] ألوان Dark Theme (bg, text, accent, status colors)
+  - [ ] ألوان Light Theme
+  - [ ] ألوان المنصات (YouTube red, GitHub dark, Telegram blue, etc.)
+  - [ ] Typography (Inter for EN, Cairo for AR)
+  - [ ] Spacing scale (4px, 8px, 12px, 16px, 24px, 32px, 48px)
+  - [ ] Border radius scale
+  - [ ] Shadow scale (sm, md, lg, xl)
+  - [ ] Transition/Animation defaults
+  - [ ] Z-index scale
+  - [ ] Breakpoints (mobile, tablet, desktop)
+- [ ] Google Fonts: تحميل Inter + Cairo
+- [ ] Glassmorphism utility classes
+- [ ] Gradient utilities
+- [ ] RTL support (`[dir="rtl"]` styles)
+
+### 1.3 مكونات UI الأساسية
+- [ ] `Button` — (primary, secondary, ghost, danger) + sizes (sm, md, lg)
+- [ ] `Card` — مع glassmorphism + hover effects
+- [ ] `Input` — text input مع label + error state
+- [ ] `Modal` — overlay + animation (slide up)
+- [ ] `Badge` — للعدادات والحالات
+- [ ] `Avatar` — مع fallback
+- [ ] `Tooltip` — hover tooltip
+- [ ] `Skeleton` — loading placeholder
+- [ ] `EmptyState` — رسالة + أيقونة + CTA button
+- [ ] `Toast/Notification` — رسائل نجاح/خطأ مؤقتة
+
+### 1.4 Layout الرئيسي
+- [ ] `Sidebar` — قائمة جانبية مع:
+  - [ ] شعار MySocial
+  - [ ] روابط التنقل (Overview, Feeds, Workspaces, Notifications, Settings)
+  - [ ] أيقونات + نص + active state
+  - [ ] قابل للطي (collapse)
+  - [ ] Responsive: يختفي على Mobile ويظهر كـ drawer
+- [ ] `Header` — شريط علوي مع:
+  - [ ] عنوان الصفحة الحالية
+  - [ ] شريط بحث (placeholder لـ Command Palette)
+  - [ ] زر الإشعارات مع badge للعدد
+  - [ ] زر تبديل اللغة (EN/AR)
+  - [ ] زر تبديل الثيم (Dark/Light)
+  - [ ] User avatar (placeholder)
+- [ ] `MainContent` — المنطقة الرئيسية مع padding وscroll
+- [ ] تجميعهم في `(dashboard)/layout.tsx`
+
+### 1.5 قاعدة البيانات (Prisma + SQLite)
+- [ ] تثبيت Prisma + @prisma/client
+- [ ] إنشاء `prisma/schema.prisma` مع كل الجداول:
+  - [ ] User
+  - [ ] Workspace
+  - [ ] Feed
+  - [ ] FeedItem
+  - [ ] Tag + FeedItemTag
+  - [ ] AlertRule
+  - [ ] Notification
+  - [ ] PushSubscription
+  - [ ] GoogleToken
+  - [ ] TelegramBot
+  - [ ] GitHubConfig
+  - [ ] DigestLog
+  - [ ] WebhookConfig
+- [ ] إعداد `lib/prisma.ts` (Prisma client singleton)
+- [ ] تشغيل `prisma generate` + `prisma db push`
+- [ ] Seed data: مستخدم افتراضي + مساحات عمل افتراضية
+
+### 1.6 الصفحات الأساسية (هياكل)
+- [ ] `(dashboard)/page.tsx` — Overview (عنوان + placeholder widgets)
+- [ ] `(dashboard)/feeds/page.tsx` — Feeds (عنوان + empty state)
+- [ ] `(dashboard)/workspaces/page.tsx` — Workspaces (عنوان + empty state)
+- [ ] `(dashboard)/notifications/page.tsx` — Notifications (عنوان + empty state)
+- [ ] `(dashboard)/settings/page.tsx` — Settings (عنوان + sections)
+- [ ] `not-found.tsx` — صفحة 404 جميلة
+- [ ] `error.tsx` — صفحة خطأ عامة
+
+### 1.7 i18n (الترجمة)
+- [ ] تثبيت next-intl
+- [ ] إعداد ملفات الترجمة: `en.json` + `ar.json`
+- [ ] ترجمة: القائمة الجانبية، العناوين، الأزرار، رسائل Empty State
+- [ ] زر تبديل اللغة يعمل
+- [ ] RTL يتفعل تلقائياً مع العربية
+
+### 1.8 اختبار المرحلة 1
+- [ ] `npm run build` — ناجح بدون أخطاء
+- [ ] التنقل بين كل الصفحات يعمل
+- [ ] Dark/Light mode يعمل
+- [ ] تبديل EN/AR يعمل + RTL صحيح
+- [ ] Sidebar collapse يعمل
+- [ ] Responsive على Mobile يعمل
+- [ ] Empty states تظهر بشكل جميل
+
+---
+
+## Phase 2 — Core ⚙️
+
+### 2.1 مساحات العمل (Workspaces)
+- [ ] API: `POST /api/workspaces` — إنشاء مساحة عمل
+- [ ] API: `GET /api/workspaces` — جلب كل المساحات
+- [ ] API: `PUT /api/workspaces/:id` — تعديل مساحة
+- [ ] API: `DELETE /api/workspaces/:id` — حذف مساحة
+- [ ] API: `PATCH /api/workspaces/reorder` — إعادة ترتيب
+- [ ] UI: صفحة Workspaces مع Grid view
+- [ ] UI: WorkspaceCard (اسم + أيقونة + لون + عدد المصادر)
+- [ ] UI: Modal إنشاء/تعديل مساحة (اسم + أيقونة + لون)
+- [ ] UI: أيقونة حذف مع تأكيد
+- [ ] UI: المساحات تظهر في Sidebar
+
+### 2.2 المصادر (Feeds)
+- [ ] API: `POST /api/feeds` — إضافة مصدر
+- [ ] API: `GET /api/feeds` — جلب كل المصادر (مع فلترة)
+- [ ] API: `PUT /api/feeds/:id` — تعديل مصدر
+- [ ] API: `DELETE /api/feeds/:id` — حذف مصدر
+- [ ] API: `PATCH /api/feeds/:id/pin` — تثبيت/فك تثبيت
+- [ ] خدمة كشف تلقائي للرابط (`utils/linkDetector.ts`):
+  - [ ] YouTube → استخراج channel_id + بناء RSS URL
+  - [ ] GitHub → استخراج owner/repo
+  - [ ] Facebook → اكتشاف كصفحة FB
+  - [ ] Twitter/X → اكتشاف
+  - [ ] أي رابط آخر → custom
+- [ ] خدمة جلب Favicons (`utils/favicon.ts`):
+  - [ ] Google Favicon API: `https://www.google.com/s2/favicons?domain=...`
+- [ ] UI: صفحة Feeds مع Grid/List toggle
+- [ ] UI: FeedCard مع (favicon + title + source type badge + last update + actions)
+- [ ] UI: Modal إضافة مصدر:
+  - [ ] حقل URL مع لصق
+  - [ ] كشف تلقائي → عرض النوع والمنصة
+  - [ ] اختيار مساحة العمل
+  - [ ] زر "Add Feed"
+- [ ] UI: فلترة حسب النوع (social, news, sports, dev, ...)
+- [ ] UI: فلترة حسب المساحة
+
+### 2.3 Command Palette
+- [ ] مكون `CommandPalette` يفتح بـ `Ctrl+K` / `Cmd+K`
+- [ ] بحث fuzzy في: المصادر، المساحات، الأوامر
+- [ ] أقسام: Recent, Quick Actions, Feeds, Workspaces
+- [ ] عرض الاختصار بجوار كل أمر
+- [ ] تنفيذ الأمر: navigate, toggle theme, add feed, etc.
+- [ ] إغلاق بـ Escape أو النقر خارج
+
+### 2.4 Keyboard Shortcuts (أساسي)
+- [ ] `Ctrl+K` — Command Palette
+- [ ] `G + H` — Go to Home
+- [ ] `G + F` — Go to Feeds
+- [ ] `G + W` — Go to Workspaces
+- [ ] `G + N` — Go to Notifications
+- [ ] `G + S` — Go to Settings
+- [ ] `N` — New Feed (فتح modal الإضافة)
+- [ ] `?` — عرض قائمة الاختصارات (modal)
+
+### 2.5 Reading List
+- [ ] DB: حقل `isSavedForLater` في FeedItem
+- [ ] API: `PATCH /api/feed-items/:id/save` — حفظ/إلغاء
+- [ ] API: `GET /api/feed-items/saved` — جلب المحفوظات
+- [ ] UI: زر 🔖 على كل FeedItem
+- [ ] UI: صفحة/قسم Reading List
+- [ ] UI: فلترة حسب النوع
+
+### 2.6 Smart Tags
+- [ ] API: CRUD للوسوم (Tag)
+- [ ] API: ربط/فك وسم من FeedItem
+- [ ] UI: إنشاء وسم (اسم + لون)
+- [ ] UI: عرض الوسوم على FeedItem
+- [ ] UI: فلترة بالوسوم
+
+### 2.7 Pinned Feeds
+- [ ] DB: حقل `isPinned` في Feed
+- [ ] UI: زر Pin على FeedCard
+- [ ] UI: قسم "📌 Pinned" في أعلى Sidebar
+- [ ] UI: ترتيب بالسحب والإفلات
+
+### 2.8 اختبار المرحلة 2
+- [ ] CRUD Workspaces يعمل بالكامل
+- [ ] CRUD Feeds يعمل بالكامل
+- [ ] كشف تلقائي يعمل (YouTube, GitHub, Facebook, ...)
+- [ ] Favicons تظهر
+- [ ] Command Palette يعمل
+- [ ] Keyboard shortcuts يعمل
+- [ ] Reading List يعمل
+- [ ] Tags يعمل
+- [ ] Pinned Feeds يعمل
+- [ ] كل شيء يعمل بالعربية + RTL
+
+---
+
+## Phase 3 — Content & Notifications 🔔
+
+### 3.1 YouTube Integration
+- [ ] خدمة `services/youtubeService.ts`
+- [ ] جلب RSS Feed لأي قناة
+- [ ] Parse XML → FeedItems (title, url, thumbnail, date)
+- [ ] حفظ في DB + كشف الجديد
+- [ ] عرض الفيديوهات في FeedCard
+
+### 3.2 GitHub Integration
+- [ ] خدمة `services/githubService.ts`
+- [ ] جلب commits.atom و releases.atom
+- [ ] Parse → FeedItems (commit message, author, SHA, date)
+- [ ] عرض في FeedCard مع commit details
+
+### 3.3 RSS Parser عام
+- [ ] تثبيت rss-parser
+- [ ] خدمة `services/rssService.ts`
+- [ ] جلب + parse أي RSS/Atom feed
+- [ ] حفظ FeedItems في DB
+
+### 3.4 Web Scraper
+- [ ] تثبيت cheerio
+- [ ] خدمة `services/scraperService.ts`
+- [ ] استخراج title + description + image من أي URL (Open Graph)
+- [ ] Fallback لمواقع بدون RSS
+
+### 3.5 Cron Jobs
+- [ ] تثبيت node-cron
+- [ ] خدمة Scheduler: يفحص كل Feed حسب checkInterval
+- [ ] API Route لتشغيل الفحص: `POST /api/cron/check-feeds`
+- [ ] تحديث `lastChecked` و `status` لكل Feed
+
+### 3.6 نظام الإشعارات الداخلي
+- [ ] API: `GET /api/notifications` — جلب الإشعارات
+- [ ] API: `PATCH /api/notifications/:id/read` — تمييز كمقروء
+- [ ] API: `PATCH /api/notifications/read-all` — تمييز الكل
+- [ ] API: `DELETE /api/notifications/:id` — حذف
+- [ ] UI: صفحة Notifications مع timeline
+- [ ] UI: NotificationBell في Header مع badge
+- [ ] UI: Dropdown سريع للإشعارات الأخيرة
+
+### 3.7 Push Notifications
+- [ ] إنشاء `public/service-worker.js`
+- [ ] تثبيت web-push
+- [ ] VAPID keys generation
+- [ ] API: `POST /api/push/subscribe` — تسجيل الاشتراك
+- [ ] API: `POST /api/push/send` — إرسال إشعار
+- [ ] طلب إذن المتصفح
+- [ ] إرسال push عند FeedItem جديد
+
+### 3.8 Smart Digest
+- [ ] خدمة `services/digestService.ts`
+- [ ] تجميع كل التحديثات حسب Workspace
+- [ ] عرض صفحة Digest في الداشبورد
+- [ ] جدولة: يومي/أسبوعي
+
+### 3.9 Activity Timeline
+- [ ] API: `GET /api/activity` — كل الأحداث مرتبة زمنياً
+- [ ] UI: Timeline component
+- [ ] فلترة حسب: platform, workspace, date
+
+### 3.10 Global Search
+- [ ] API: `GET /api/search?q=...` — بحث في FeedItems + Feeds + Notes
+- [ ] UI: نتائج مصنفة حسب النوع
+- [ ] تكامل مع Command Palette
+
+### 3.11 Notes & Annotations
+- [ ] DB: حقل `note` في FeedItem
+- [ ] API: `PATCH /api/feed-items/:id/note` — إضافة/تعديل ملاحظة
+- [ ] UI: حقل نص في FeedItem expanded view
+- [ ] تظهر في Global Search
+
+### 3.12 اختبار المرحلة 3
+- [ ] إضافة قناة YouTube → تظهر الفيديوهات
+- [ ] إضافة GitHub repo → تظهر commits
+- [ ] إضافة RSS feed → تظهر المقالات
+- [ ] Cron job يفحص ويحدث
+- [ ] إشعارات داخلية تظهر
+- [ ] Push notification يظهر في المتصفح
+- [ ] Smart Digest يعرض ملخص
+- [ ] Timeline يعرض الأحداث
+- [ ] Search يعمل عبر كل المحتوى
+- [ ] Notes تعمل
+
+---
+
+## Phase 4 — Advanced 🔌
+
+### 4.1 Telegram Bot Integration
+- [ ] خدمة `services/telegramService.ts`
+- [ ] إعداد Bot مع grammy
+- [ ] ربط قناة/جروب بالداشبورد
+- [ ] استقبال رسائل → حفظ كـ FeedItems
+- [ ] إشعارات عند رسالة جديدة
+
+### 4.2 Gmail Integration
+- [ ] Google Cloud Project + OAuth2 Consent Screen
+- [ ] خدمة `services/gmailService.ts`
+- [ ] OAuth2 flow → حفظ tokens
+- [ ] جلب آخر الرسائل
+- [ ] إشعار عند رسالة جديدة
+
+### 4.3 Google Drive Integration
+- [ ] خدمة `services/driveService.ts`
+- [ ] OAuth2 (نفس Google Token)
+- [ ] مراقبة مجلد محدد
+- [ ] إشعار عند رفع ملف
+
+### 4.4 Facebook RSS
+- [ ] تكامل مع خدمة RSS وسيطة
+- [ ] جلب منشورات الصفحات العامة
+
+### 4.5 Sports APIs
+- [ ] تكامل مع football-data.org أو بديل
+- [ ] Widget مباريات اليوم
+
+### 4.6 Onboarding Wizard
+- [ ] مكون Wizard متعدد الخطوات
+- [ ] Step 1: اللغة + الثيم
+- [ ] Step 2: إنشاء أول مساحة عمل
+- [ ] Step 3: إضافة أول مصدر
+- [ ] Step 4: تفعيل الإشعارات
+- [ ] Step 5: إنهاء + جولة سريعة
+
+### 4.7 Drag & Drop Widgets
+- [ ] مكتبة DnD (react-grid-layout أو dnd-kit)
+- [ ] Widgets: Feed Activity, Notifications, Sports, Email, Git, Digest, Saved, Quick Links
+- [ ] حفظ layout المستخدم في DB
+- [ ] إضافة/إزالة/resize widgets
+
+### 4.8 Focus Mode
+- [ ] UI: زر Focus في Header
+- [ ] اختيار Workspace للتركيز عليه
+- [ ] كتم إشعارات المساحات الأخرى
+- [ ] مؤقت اختياري
+- [ ] جدول تلقائي (اختياري)
+
+### 4.9 Status Page
+- [ ] API: `GET /api/status` — حالة كل تكامل
+- [ ] UI: عرض حالة كل Feed (🟢🟡🔴)
+- [ ] آخر فحص + Retry button
+
+### 4.10 Custom Alert Rules
+- [ ] CRUD AlertRules
+- [ ] محرك قواعد: IF keyword → THEN action
+- [ ] تنفيذ الإجراءات: push, bookmark, tag
+
+### 4.11 Analytics Dashboard  
+- [ ] إحصائيات: أكثر المصادر نشاطاً، عدد الإشعارات، وقت الذروة
+- [ ] Charts بـ Recharts
+
+### 4.12 PWA
+- [ ] `public/manifest.json`
+- [ ] أيقونات بكل الأحجام
+- [ ] تسجيل Service Worker
+- [ ] Installable على Desktop + Mobile
+
+### 4.13 اختبار المرحلة 4
+- [ ] Telegram Bot يعمل
+- [ ] Gmail يظهر آخر الرسائل
+- [ ] Google Drive يظهر الملفات
+- [ ] Onboarding Wizard يعمل
+- [ ] Widgets drag & drop يعمل
+- [ ] Focus Mode يعمل
+- [ ] Status Page يعرض الحالات
+- [ ] Alert Rules تعمل
+- [ ] Analytics تعرض بيانات
+- [ ] PWA قابل للتثبيت
+
+---
+
+## Phase 5 — Market Ready 🚀
+
+- [ ] نظام المصادقة (NextAuth.js)
+  - [ ] Login page
+  - [ ] Register page
+  - [ ] Protected routes
+- [ ] نظام الاشتراكات (Stripe)
+  - [ ] Free / Pro / Enterprise plans
+  - [ ] Stripe Checkout
+  - [ ] Feature gating حسب الخطة
+- [ ] Landing Page تسويقية
+  - [ ] Hero section
+  - [ ] Features showcase
+  - [ ] Pricing table
+  - [ ] Testimonials
+  - [ ] CTA
+- [ ] Export Reports (PDF/CSV)
+- [ ] Browser Extension
+- [ ] Webhook/Zapier Integration
+- [ ] Email Digest (Resend أو SendGrid)
+- [ ] Multi-Device Sync
+- [ ] Team Features (مشاركة + أدوار)
+- [ ] Facebook Graph API (Enterprise)
+- [ ] API Documentation (Swagger)
+- [ ] Deploy على Vercel
+- [ ] Custom domain
+- [ ] Privacy Policy + Terms
+
+---
+
+## Phase 6 — Future Evolution 🔮
+
+- [ ] 🤖 AI Summary (OpenAI/Gemini API)
+- [ ] 🤖 AI Auto-Tag
+- [ ] 📊 Team Analytics
+- [ ] 📱 Mobile App (React Native + Expo)
+- [ ] 🔄 Content Scheduling (Calendar + Platform APIs)
+- [ ] 💬 In-App Chat (WebSocket)
+- [ ] 🌐 Public API + Documentation (Swagger)
+- [ ] 📋 Kanban Board (Drag & Drop)

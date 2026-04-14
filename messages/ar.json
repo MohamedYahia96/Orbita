@@ -1,0 +1,14 @@
+{
+  "Sidebar": {
+    "overview": "نظرة عامة",
+    "feeds": "المحتوى",
+    "workspaces": "مساحات العمل",
+    "notifications": "الإشعارات",
+    "readingList": "قائمة القراءة",
+    "tags": "التصنيفات الذكية",
+    "settings": "الإعدادات"
+  },
+  "Dashboard": {
+    "searchPlaceholder": "ابحث عن الأوامر، المحتوى، والمزيد... (Ctrl+K)"
+  }
+}

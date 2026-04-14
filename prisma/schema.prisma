@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+// Basic settings
+  theme     String   @default("dark")
+  locale    String   @default("en")
+  plan      String   @default("free")
+
+  // Relations
+  workspaces Workspace[]
+  feeds      Feed[]
+  tags       Tag[]
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  icon      String?
+  color     String?
+  order     Int      @default(0)
+  isShared  Boolean  @default(false)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feeds     Feed[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Feed {
+  id                   String   @id @default(cuid())
+  title                String
+  url                  String?
+  favicon              String?
+  description          String?
+  type                 String   // e.g., rss, custom_link, github, youtube
+  platform             String?  // e.g., youtube, github
+  integrationLevel     String   @default("link") // full, partial, link
+  notificationsEnabled Boolean  @default(true)
+  isPinned             Boolean  @default(false)
+  checkInterval        Int      @default(60) // minutes
+  rssUrl               String?
+  metadata             String?  // JSON string for extra metadata
+  workspaceId          String?
+  workspace            Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status               String   @default("active") // active, error, paused
+  lastChecked          DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  
+  feedItems            FeedItem[]
+}
+
+model FeedItem {
+  id             String   @id @default(cuid())
+  title          String
+  content        String?
+  url            String?
+  image          String?
+  mediaType      String?  // video, article, image
+  extraData      String?  // JSON string
+  isRead         Boolean  @default(false)
+  isBookmarked   Boolean  @default(false)
+  isSavedForLater Boolean  @default(false)
+  note           String?
+  feedId         String
+  feed           Feed     @relation(fields: [feedId], references: [id], onDelete: Cascade)
+  publishedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tags           FeedItemTag[]
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String
+  color     String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  feedItems FeedItemTag[]
+}
+
+model FeedItemTag {
+  feedItemId String
+  tagId      String
+  feedItem   FeedItem @relation(fields: [feedItemId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([feedItemId, tagId])
+}

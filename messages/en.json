@@ -1,0 +1,14 @@
+{
+  "Sidebar": {
+    "overview": "Overview",
+    "feeds": "Feeds",
+    "workspaces": "Workspaces",
+    "notifications": "Notifications",
+    "readingList": "Reading List",
+    "tags": "Smart Tags",
+    "settings": "Settings"
+  },
+  "Dashboard": {
+    "searchPlaceholder": "Search commands, feeds, workspaces... (Ctrl+K)"
+  }
+}
