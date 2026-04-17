@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Bookmark,
   Tag as TagIcon,
+  Mail,
 } from "lucide-react";
 import { Tooltip } from "@/components/ui";
 import styles from "./Sidebar.module.css";
@@ -32,6 +33,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     { href: "/workspaces", label: t("workspaces"), icon: <LayoutGrid size={20} /> },
     { href: "/reading-list", label: t("readingList"), icon: <Bookmark size={20} /> },
     { href: "/tags", label: t("tags"), icon: <TagIcon size={20} /> },
+    { href: "/digest", label: (t as any)("digest") || "Smart Digest", icon: <Mail size={20} /> },
     { href: "/notifications", label: t("notifications"), icon: <Bell size={20} /> },
     { href: "/settings", label: t("settings"), icon: <Settings size={20} /> },
   ];

@@ -102,3 +102,22 @@
 - [x] دعم ⌨️ Keyboard Shortcuts الأساسية للتنقل وإضافة عناصر.
 - [x] إنشاء ميزة 📑 Reading List لحفظ العناصر للقراءة لاحقاً (Read Later).
 - [x] إنشاء نظام 🏷️ Smart Tags لتصنيف المحتوى وإضافته للعناصر.
+
+## Phase 3 — Content & Notifications 🔔
+
+### 3.1 جلب المحتوى (Content Integration)
+- [x] إعداد `RSS Parser` العام للمقالات والمدونات والأخبار.
+- [x] تكامل 🔴 YouTube RSS.
+- [x] تكامل 🐙 GitHub RSS + Webhooks.
+- [x] إعداد Web Scraper باستخدام `Cheerio` للمحتوى المخصص.
+- [x] جدولة المهام (Cron Jobs) باستخدام `Vercel Cron` لجلب المحتوى دورياً.
+
+### 3.2 نظام الإشعارات (Notifications)
+- [x] إنشاء مكون الإشعارات داخل الداشبورد الداخلي.
+- [x] إعداد Push Notifications باستخدام (Service Worker).
+- [x] بناء نظام الـ 📬 Smart Digest (التقرير الذكي اليومي / الأسبوعي).
+
+### 3.3 الأدوات المتقدمة والبحث (Advanced Tools)
+- [x] إنشاء المخطط الزمني للنشاط 📊 (Activity Timeline).
+- [x] إنشاء ميزة البحث الشامل 🔍 (Global Search).
+- [x] إضافة ميزة كتابة الملاحظات على المحتوى 📝 (Notes & Annotations).

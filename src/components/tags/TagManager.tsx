@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { EmptyState, Button, Card, Input, Modal, useToast, Badge } from "@/components/ui";
 import { Tag as TagIcon, Plus, Edit2, Trash2, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Tag = {
   id: string;
@@ -11,6 +12,8 @@ type Tag = {
 };
 
 export function TagManager() {
+  const t = useTranslations("Tags");
+  const tCommon = useTranslations("Common");
   const [tags, setTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,7 +39,7 @@ export function TagManager() {
       setTags(data);
     } catch (error) {
       console.error(error);
-      toast("Failed to load tags", "error");
+      toast(tCommon("error"), "error");
     } finally {
       setIsLoading(false);
     }
@@ -80,29 +83,29 @@ export function TagManager() {
 
       if (!res.ok) throw new Error("Failed to save tag");
 
-      toast(`Tag ${isEdit ? "updated" : "created"} successfully`, "success");
+      toast(isEdit ? t("successUpdate") : t("successCreate"), "success");
       handleCloseModal();
       fetchTags();
     } catch (error) {
       console.error(error);
-      toast("Failed to save tag", "error");
+      toast(tCommon("error"), "error");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this tag?")) return;
+    if (!confirm(t("confirmDelete"))) return;
 
     try {
       const res = await fetch(`/api/tags/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete tag");
       
-      toast("Tag deleted", "success");
+      toast(t("successDelete"), "success");
       fetchTags();
     } catch (error) {
       console.error(error);
-      toast("Failed to delete tag", "error");
+      toast(tCommon("error"), "error");
     }
   };
 
@@ -118,11 +121,11 @@ export function TagManager() {
     <div className="flex flex-col gap-6 p-6 h-full max-w-5xl mx-auto border border-[var(--colors-border)] rounded-2xl bg-[var(--colors-bg-alt)]/30 backdrop-blur-sm shadow-xl">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-bold">Smart Tags</h2>
-          <p className="text-sm opacity-70">Organize your saved items and feeds</p>
+          <h2 className="text-xl font-bold">{t("title")}</h2>
+          <p className="text-sm opacity-70">{t("subtitle")}</p>
         </div>
         <Button onClick={() => handleOpenModal()} className="flex items-center gap-2 px-3 py-1.5 h-auto text-sm" size="sm">
-          <Plus size={16} /> New Tag
+          <Plus size={16} /> {t("newBtn")}
         </Button>
       </div>
 
@@ -130,9 +133,9 @@ export function TagManager() {
         <div className="flex-1 flex items-center justify-center py-12">
           <EmptyState 
             icon={<TagIcon size={40} />}
-            title="No Tags Yet"
-            description="Create tags to quickly categorize and filter your reading list."
-            action={<Button onClick={() => handleOpenModal()}>Create Tag</Button>}
+            title={t("noTags")}
+            description={t("noTagsDesc")}
+            action={<Button onClick={() => handleOpenModal()}>{t("createFirst")}</Button>}
           />
         </div>
       ) : (
@@ -166,10 +169,10 @@ export function TagManager() {
         </div>
       )}
 
-      <Modal open={isModalOpen} onClose={handleCloseModal} title={editingTag ? "Edit Tag" : "Create Tag"}>
+      <Modal open={isModalOpen} onClose={handleCloseModal} title={editingTag ? t("editTag") : t("createTag")}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4 dark">
           <div>
-            <label className="block text-sm font-medium mb-1">Name</label>
+            <label className="block text-sm font-medium mb-1">{t("name")}</label>
             <Input 
               value={name} 
               onChange={(e) => setName(e.target.value)} 
@@ -179,7 +182,7 @@ export function TagManager() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Color</label>
+            <label className="block text-sm font-medium mb-1">{t("color")}</label>
             <div className="flex items-center gap-2 mt-2">
               {['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'].map(c => (
                 <button
@@ -193,9 +196,9 @@ export function TagManager() {
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="ghost" type="button" onClick={handleCloseModal}>Cancel</Button>
+            <Button variant="ghost" type="button" onClick={handleCloseModal}>{t("cancel")}</Button>
             <Button type="submit" disabled={isSubmitting || !name.trim()}>
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("save")}
             </Button>
           </div>
         </form>

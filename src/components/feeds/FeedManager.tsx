@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { EmptyState, Button, Card, Input, Modal, useToast } from "@/components/ui";
-import { Rss, Plus, Edit2, Trash2, Loader2, Link as LinkIcon, Video, Code, Pin } from "lucide-react";
+import { Rss, Plus, Edit2, Trash2, Loader2, Link as LinkIcon, Video, Code, Pin, RefreshCw } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Feed = {
   id: string;
@@ -28,6 +29,8 @@ const PLATFORMS = [
 ];
 
 export function FeedManager() {
+  const t = useTranslations("Feeds");
+  const tCommon = useTranslations("Common");
   const [feeds, setFeeds] = useState<Feed[]>([]);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,6 +44,7 @@ export function FeedManager() {
   const [workspaceId, setWorkspaceId] = useState("");
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,7 +67,7 @@ export function FeedManager() {
       setWorkspaces(wsData);
     } catch (error) {
       console.error(error);
-      toast("Failed to load data", "error");
+      toast(tCommon("error"), "error");
     } finally {
       setIsLoading(false);
     }
@@ -121,29 +125,29 @@ export function FeedManager() {
 
       if (!res.ok) throw new Error("Failed to save feed");
 
-      toast(`Feed ${isEdit ? "updated" : "added"} successfully`, "success");
+      toast(isEdit ? t("successUpdate") : t("successAdd"), "success");
       handleCloseModal();
       fetchData();
     } catch (error) {
       console.error(error);
-      toast("Failed to save feed", "error");
+      toast(tCommon("error"), "error");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this feed?")) return;
+    if (!confirm(t("confirmDelete"))) return;
 
     try {
       const res = await fetch(`/api/feeds/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete feed");
       
-      toast("Feed deleted", "success");
+      toast(t("successDelete"), "success");
       fetchData();
     } catch (error) {
       console.error(error);
-      toast("Failed to delete feed", "error");
+      toast(tCommon("error"), "error");
     }
   };
 
@@ -157,7 +161,21 @@ export function FeedManager() {
       if (!res.ok) throw new Error("Failed to update pin status");
       fetchData();
     } catch(err) {
-      toast("Failed to update pin status", "error");
+      toast(tCommon("error"), "error");
+    }
+  }
+
+  const handleSyncAll = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch("/api/cron/sync");
+      if (!res.ok) throw new Error("Sync failed");
+      toast(t("successSync"), "success");
+      fetchData();
+    } catch(err) {
+      toast(t("failSync"), "error");
+    } finally {
+      setIsSyncing(false);
     }
   }
 
@@ -173,21 +191,26 @@ export function FeedManager() {
     <div className="flex flex-col gap-6 p-6 h-full max-w-5xl mx-auto">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">My Feeds</h1>
-          <p className="text-sm opacity-70">Manage your connected sources and links</p>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
+          <p className="text-sm opacity-70">{t("subtitle")}</p>
         </div>
-        <Button onClick={() => handleOpenModal()} className="flex items-center gap-2">
-          <Plus size={16} /> Add Feed
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleSyncAll} variant="secondary" disabled={isSyncing} className="flex items-center gap-2 text-sm bg-[var(--colors-bg-alt)] border-[var(--colors-border)] border">
+            <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} /> {isSyncing ? t("syncing") : t("syncBtn")}
+          </Button>
+          <Button onClick={() => handleOpenModal()} className="flex items-center gap-2">
+            <Plus size={16} /> {t("addBtn")}
+          </Button>
+        </div>
       </div>
 
       {feeds.length === 0 ? (
         <div className="flex-1 flex items-center justify-center">
           <EmptyState 
             icon={<Rss size={48} />}
-            title="No Feeds"
-            description="Connect a content provider, save a quick link, or add an RSS feed."
-            action={<Button onClick={() => handleOpenModal()}>Add New Feed</Button>}
+            title={t("noFeeds")}
+            description={t("noFeedsDesc")}
+            action={<Button onClick={() => handleOpenModal()}>{t("addFirst")}</Button>}
           />
         </div>
       ) : (
@@ -206,7 +229,7 @@ export function FeedManager() {
                   <div className="min-w-0 flex-1">
                     <h3 className="font-semibold text-base truncate">{feed.title}</h3>
                     <p className="text-xs opacity-70 truncate max-w-full">
-                      {feed.url ? new URL(feed.url).hostname : (feed.type === 'rss' && feed.url ? feed.url : "No URL")}
+                      {feed.url ? new URL(feed.url).hostname : (feed.type === 'rss' && feed.url ? feed.url : t("unassigned"))}
                     </p>
                   </div>
                 </div>
@@ -245,10 +268,10 @@ export function FeedManager() {
         </div>
       )}
 
-      <Modal open={isModalOpen} onClose={handleCloseModal} title={editingFeed ? "Edit Feed" : "Add New Feed"}>
+      <Modal open={isModalOpen} onClose={handleCloseModal} title={editingFeed ? t("editFeed") : t("addNew")}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4 dark">
           <div>
-            <label className="block text-sm font-medium mb-1">Type</label>
+            <label className="block text-sm font-medium mb-1">{t("type")}</label>
             <div className="grid grid-cols-2 gap-2">
               {PLATFORMS.map(p => (
                 <button
@@ -268,7 +291,7 @@ export function FeedManager() {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-1">Title <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium mb-1">{t("feedTitle")} <span className="text-red-500">*</span></label>
             <Input 
               value={title} 
               onChange={(e) => setTitle(e.target.value)} 
@@ -278,7 +301,7 @@ export function FeedManager() {
           </div>
           
           <div>
-            <label className="block text-sm font-medium mb-1">URL (Optional)</label>
+            <label className="block text-sm font-medium mb-1">{t("url")}</label>
             <Input 
               value={url} 
               onChange={(e) => setUrl(e.target.value)} 
@@ -287,15 +310,15 @@ export function FeedManager() {
               className="w-full"
             />
           </div>
-
+ 
           <div>
-            <label className="block text-sm font-medium mb-1">Workspace</label>
+            <label className="block text-sm font-medium mb-1">{t("workspace")}</label>
             <select 
               className="w-full h-10 px-3 bg-transparent border border-[var(--colors-border)] rounded-lg text-[var(--colors-text)] focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               value={workspaceId}
               onChange={(e) => setWorkspaceId(e.target.value)}
             >
-              <option value="" className="bg-[var(--colors-bg)] text-[var(--colors-text)]">Unassigned</option>
+              <option value="" className="bg-[var(--colors-bg)] text-[var(--colors-text)]">{t("unassigned")}</option>
               {workspaces.map(w => (
                 <option key={w.id} value={w.id} className="bg-[var(--colors-bg)] text-[var(--colors-text)]">{w.name}</option>
               ))}
@@ -303,9 +326,9 @@ export function FeedManager() {
           </div>
 
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="ghost" type="button" onClick={handleCloseModal}>Cancel</Button>
+            <Button variant="ghost" type="button" onClick={handleCloseModal}>{t("cancel")}</Button>
             <Button type="submit" disabled={isSubmitting || !title.trim()}>
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Feed"}
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("save")}
             </Button>
           </div>
         </form>

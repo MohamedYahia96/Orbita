@@ -24,9 +24,10 @@ model User {
   plan      String   @default("free")
 
   // Relations
-  workspaces Workspace[]
-  feeds      Feed[]
-  tags       Tag[]
+  workspaces    Workspace[]
+  feeds         Feed[]
+  tags          Tag[]
+  subscriptions PushSubscription[]
 }
 
 model Workspace {
@@ -107,4 +108,14 @@ model FeedItemTag {
   tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([feedItemId, tagId])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 }

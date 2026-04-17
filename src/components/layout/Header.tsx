@@ -14,6 +14,7 @@ import styles from "./Header.module.css";
 import { usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 export default function Header() {
   const { theme, setTheme } = useTheme();
@@ -22,6 +23,7 @@ export default function Header() {
   const locale = useLocale();
   const router = useRouter();
   const t = useTranslations("Dashboard");
+  const tSidebar = useTranslations("Sidebar");
 
   useEffect(() => {
     setMounted(true);
@@ -29,7 +31,11 @@ export default function Header() {
 
   const getPageTitle = () => {
     const path = pathname?.split('/').pop() || "overview";
-    return path.charAt(0).toUpperCase() + path.slice(1);
+    try {
+      return tSidebar(path as any);
+    } catch {
+      return path.charAt(0).toUpperCase() + path.slice(1);
+    }
   };
 
   const toggleLocale = () => {
@@ -72,15 +78,7 @@ export default function Header() {
           )}
 
           <div className={styles.notifWrap}>
-            <Badge variant="error" dot className={styles.notifBadge}>
-              3
-            </Badge>
-            <Button variant="ghost" size="sm" icon={
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-              </svg>
-            } aria-label="Notifications" />
+            <NotificationBell />
           </div>
         </div>
 

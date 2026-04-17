@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { EmptyState, Button, Card, Input, Modal, useToast } from "@/components/ui";
 import { Bookmark, Plus, Edit2, Trash2, Loader2, ExternalLink, Tag as TagIcon, CheckCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Tag = { id: string; name: string; color: string };
 
@@ -16,6 +17,8 @@ type ReadingListItem = {
 };
 
 export function ReadingListManager() {
+  const t = useTranslations("ReadingList");
+  const tCommon = useTranslations("Common");
   const [items, setItems] = useState<ReadingListItem[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -51,7 +54,7 @@ export function ReadingListManager() {
       setAvailableTags(tagsData);
     } catch (error) {
       console.error(error);
-      toast("Failed to load reading list", "error");
+      toast(tCommon("error"), "error");
     } finally {
       setIsLoading(false);
     }
@@ -102,12 +105,12 @@ export function ReadingListManager() {
 
       if (!res.ok) throw new Error("Failed to save item");
 
-      toast(`Saved to Reading List`, "success");
+      toast(t("successSave"), "success");
       handleCloseModal();
       fetchData();
     } catch (error) {
       console.error(error);
-      toast("Failed to save item", "error");
+      toast(tCommon("error"), "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -128,18 +131,18 @@ export function ReadingListManager() {
       });
       fetchData();
     } catch (err) {
-      toast("Failed to update status", "error");
+      toast(tCommon("error"), "error");
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to remove this from your reading list?")) return;
+    if (!confirm(t("confirmDelete"))) return;
     try {
       await fetch(`/api/reading-list/${id}`, { method: "DELETE" });
-      toast("Removed from reading list", "success");
+      toast(t("successRemove"), "success");
       fetchData();
     } catch (error) {
-      toast("Failed to delete item", "error");
+      toast(tCommon("error"), "error");
     }
   };
 
@@ -155,11 +158,11 @@ export function ReadingListManager() {
     <div className="flex flex-col gap-6 p-6 h-full max-w-5xl mx-auto">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Reading List</h1>
-          <p className="text-sm opacity-70">Saved articles, videos, and links for later</p>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
+          <p className="text-sm opacity-70">{t("subtitle")}</p>
         </div>
         <Button onClick={() => handleOpenModal()} className="flex items-center gap-2">
-          <Plus size={16} /> Add Item
+          <Plus size={16} /> {t("addBtn")}
         </Button>
       </div>
 
@@ -167,9 +170,9 @@ export function ReadingListManager() {
         <div className="flex-1 flex items-center justify-center">
           <EmptyState 
             icon={<Bookmark size={48} />}
-            title="Read Later"
-            description="Your reading list is empty. Add an article or link to read later."
-            action={<Button onClick={() => handleOpenModal()}>Add to Reading List</Button>}
+            title={t("noItems")}
+            description={t("noItemsDesc")}
+            action={<Button onClick={() => handleOpenModal()}>{t("addFirst")}</Button>}
           />
         </div>
       ) : (
@@ -181,7 +184,7 @@ export function ReadingListManager() {
                   <button 
                     onClick={() => toggleReadStatus(item)}
                     className={`mt-1 border-none bg-transparent cursor-pointer transition-colors ${item.isRead ? "text-green-500" : "text-[var(--colors-text)] opacity-30 hover:opacity-100"}`}
-                    title={item.isRead ? "Mark as unread" : "Mark as read"}
+                    title={item.isRead ? t("unread") : t("read")}
                   >
                     <CheckCircle size={20} />
                   </button>
@@ -223,10 +226,10 @@ export function ReadingListManager() {
         </div>
       )}
 
-      <Modal open={isModalOpen} onClose={handleCloseModal} title={editingItem ? "Edit Item" : "Add to Reading List"}>
+      <Modal open={isModalOpen} onClose={handleCloseModal} title={editingItem ? t("editItem") : t("addItem")}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4 dark">
           <div>
-            <label className="block text-sm font-medium mb-1">Title <span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium mb-1">{t("itemTitle")} <span className="text-red-500">*</span></label>
             <Input 
               value={title} 
               onChange={(e) => setTitle(e.target.value)} 
@@ -236,7 +239,7 @@ export function ReadingListManager() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">URL</label>
+            <label className="block text-sm font-medium mb-1">{t("url")}</label>
             <Input 
               value={url} 
               onChange={(e) => setUrl(e.target.value)} 
@@ -246,7 +249,7 @@ export function ReadingListManager() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Note (Optional)</label>
+            <label className="block text-sm font-medium mb-1">{t("note")}</label>
             <textarea 
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -257,7 +260,7 @@ export function ReadingListManager() {
           
           {availableTags.length > 0 && (
             <div>
-              <label className="block text-sm font-medium mb-2 flex items-center gap-1"><TagIcon size={14}/> Tags</label>
+              <label className="block text-sm font-medium mb-2 flex items-center gap-1"><TagIcon size={14}/> {t("tags")}</label>
               <div className="flex gap-2 flex-wrap max-h-32 overflow-y-auto">
                 {availableTags.map(tag => {
                   const isSelected = selectedTagIds.includes(tag.id);
@@ -285,9 +288,9 @@ export function ReadingListManager() {
           )}
 
           <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-[var(--colors-border)]">
-            <Button variant="ghost" type="button" onClick={handleCloseModal}>Cancel</Button>
+            <Button variant="ghost" type="button" onClick={handleCloseModal}>{t("cancel")}</Button>
             <Button type="submit" disabled={isSubmitting || !title.trim()}>
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("save")}
             </Button>
           </div>
         </form>

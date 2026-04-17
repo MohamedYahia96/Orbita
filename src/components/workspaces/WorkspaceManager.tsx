@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { EmptyState, Button, Card, Input, Modal, useToast } from "@/components/ui";
 import { LayoutGrid, Plus, Edit2, Trash2, Loader2, Folder } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type Workspace = {
   id: string;
@@ -13,6 +14,8 @@ type Workspace = {
 };
 
 export function WorkspaceManager() {
+  const t = useTranslations("Workspaces");
+  const tCommon = useTranslations("Common");
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,7 +40,7 @@ export function WorkspaceManager() {
       setWorkspaces(data);
     } catch (error) {
       console.error(error);
-      toast("Failed to load workspaces", "error");
+      toast(tCommon("error"), "error");
     } finally {
       setIsLoading(false);
     }
@@ -81,29 +84,29 @@ export function WorkspaceManager() {
 
       if (!res.ok) throw new Error("Failed to save workspace");
 
-      toast(`Workspace ${isEdit ? "updated" : "created"} successfully`, "success");
+      toast(isEdit ? t("successUpdate") : t("successCreate"), "success");
       handleCloseModal();
       fetchWorkspaces();
     } catch (error) {
       console.error(error);
-      toast("Failed to save workspace", "error");
+      toast(tCommon("error"), "error");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this workspace?")) return;
+    if (!confirm(t("confirmDelete"))) return;
 
     try {
       const res = await fetch(`/api/workspaces/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete workspace");
       
-      toast("Workspace deleted", "success");
+      toast(t("successDelete"), "success");
       fetchWorkspaces();
     } catch (error) {
       console.error(error);
-      toast("Failed to delete workspace", "error");
+      toast(tCommon("error"), "error");
     }
   };
 
@@ -119,11 +122,11 @@ export function WorkspaceManager() {
     <div className="flex flex-col gap-6 p-6 h-full max-w-5xl mx-auto">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">My Workspaces</h1>
-          <p className="text-sm opacity-70">Manage your logical groupings of content</p>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
+          <p className="text-sm opacity-70">{t("subtitle")}</p>
         </div>
         <Button onClick={() => handleOpenModal()} className="flex items-center gap-2">
-          <Plus size={16} /> New Workspace
+          <Plus size={16} /> {t("newBtn")}
         </Button>
       </div>
 
@@ -131,9 +134,9 @@ export function WorkspaceManager() {
         <div className="flex-1 flex items-center justify-center">
           <EmptyState 
             icon={<LayoutGrid size={48} />}
-            title="No Workspaces"
-            description="Create a workspace to start organizing your feeds."
-            action={<Button onClick={() => handleOpenModal()}>Create New Workspace</Button>}
+            title={t("noWorkspaces")}
+            description={t("noWorkspacesDesc")}
+            action={<Button onClick={() => handleOpenModal()}>{t("createFirst")}</Button>}
           />
         </div>
       ) : (
@@ -161,7 +164,6 @@ export function WorkspaceManager() {
                   <button 
                     onClick={() => handleDelete(ws.id)}
                     className="p-2 border-none bg-transparent hover:bg-[var(--colors-danger)] hover:text-white rounded-lg transition-colors opacity-70 hover:opacity-100 cursor-pointer"
-                    title="Delete"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -173,10 +175,10 @@ export function WorkspaceManager() {
       )}
 
       {/* Modal is a wrapper around your content, check ui implementation */}
-      <Modal open={isModalOpen} onClose={handleCloseModal} title={editingWorkspace ? "Edit Workspace" : "Create Workspace"}>
+      <Modal open={isModalOpen} onClose={handleCloseModal} title={editingWorkspace ? t("editWorkspace") : t("createWorkspace")}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4 dark">
           <div>
-            <label className="block text-sm font-medium mb-1">Name</label>
+            <label className="block text-sm font-medium mb-1">{t("name")}</label>
             <Input 
               value={name} 
               onChange={(e) => setName(e.target.value)} 
@@ -186,7 +188,7 @@ export function WorkspaceManager() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Color</label>
+            <label className="block text-sm font-medium mb-1">{t("color")}</label>
             <div className="flex items-center gap-2">
               {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'].map(c => (
                 <button
@@ -200,9 +202,9 @@ export function WorkspaceManager() {
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="ghost" type="button" onClick={handleCloseModal}>Cancel</Button>
+            <Button variant="ghost" type="button" onClick={handleCloseModal}>{t("cancel")}</Button>
             <Button type="submit" disabled={isSubmitting || !name.trim()}>
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("save")}
             </Button>
           </div>
         </form>
