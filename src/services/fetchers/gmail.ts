@@ -68,14 +68,31 @@ type GoogleOAuthStatePayload = {
 const GOOGLE_OAUTH_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_OAUTH_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GMAIL_API_BASE_URL = "https://gmail.googleapis.com/gmail/v1/users/me";
-const GOOGLE_OAUTH_SCOPE = [
-  "https://www.googleapis.com/auth/gmail.readonly",
-  "https://www.googleapis.com/auth/userinfo.email",
-].join(" ");
+const GOOGLE_USERINFO_EMAIL_SCOPE = "https://www.googleapis.com/auth/userinfo.email";
+export const GOOGLE_GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
+export const GOOGLE_DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+const GOOGLE_OAUTH_SCOPES = [
+  GOOGLE_GMAIL_READONLY_SCOPE,
+  GOOGLE_DRIVE_READONLY_SCOPE,
+  GOOGLE_USERINFO_EMAIL_SCOPE,
+];
+const GOOGLE_OAUTH_SCOPE = GOOGLE_OAUTH_SCOPES.join(" ");
 const OAUTH_STATE_MAX_AGE_MS = 10 * 60 * 1000;
 
 export const GMAIL_DEFAULT_FAVICON =
   "https://www.google.com/s2/favicons?domain=mail.google.com&sz=128";
+
+export function hasGoogleScope(scope: string | null | undefined, requiredScope: string) {
+  if (!scope || !requiredScope) {
+    return false;
+  }
+
+  return scope
+    .split(/\s+/)
+    .map((scopeItem) => scopeItem.trim())
+    .filter((scopeItem) => scopeItem.length > 0)
+    .includes(requiredScope);
+}
 
 function getGoogleOAuthEnv() {
   const clientId = process.env.GOOGLE_CLIENT_ID;

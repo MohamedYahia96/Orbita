@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { EmptyState, Button, Card, Input, Modal, useToast } from "@/components/ui";
-import { Rss, Plus, Edit2, Trash2, Loader2, Link as LinkIcon, Video, Code, Pin, RefreshCw, Send, Mail } from "lucide-react";
+import { Rss, Plus, Edit2, Trash2, Loader2, Link as LinkIcon, Video, Code, Pin, RefreshCw, Send, Mail, Folder } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 type Feed = {
@@ -38,6 +38,7 @@ const PLATFORMS = [
   { id: "github", labelKey: "platformGithub", icon: <Code size={16} /> },
   { id: "telegram", labelKey: "platformTelegram", icon: <Send size={16} /> },
   { id: "gmail", labelKey: "platformGmail", icon: <Mail size={16} /> },
+  { id: "drive", labelKey: "platformDrive", icon: <Folder size={16} /> },
 ];
 
 export function FeedManager() {
@@ -61,6 +62,10 @@ export function FeedManager() {
   const [gmailConnected, setGmailConnected] = useState<boolean | null>(null);
   const [gmailEmail, setGmailEmail] = useState<string | null>(null);
   const [isCheckingGmailStatus, setIsCheckingGmailStatus] = useState(false);
+  const [driveFolderId, setDriveFolderId] = useState("root");
+  const [driveConnected, setDriveConnected] = useState<boolean | null>(null);
+  const [driveEmail, setDriveEmail] = useState<string | null>(null);
+  const [isCheckingDriveStatus, setIsCheckingDriveStatus] = useState(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -69,6 +74,7 @@ export function FeedManager() {
 
   const isTelegramType = type === "telegram";
   const isGmailType = type === "gmail";
+  const isDriveType = type === "drive";
 
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;
@@ -116,6 +122,28 @@ export function FeedManager() {
     }
   };
 
+  const parseDriveMetadata = (metadata: string | null) => {
+    if (!metadata) {
+      return {
+        folderId: "root",
+      };
+    }
+
+    try {
+      const parsed = JSON.parse(metadata) as {
+        folderId?: unknown;
+      };
+
+      return {
+        folderId: typeof parsed.folderId === "string" && parsed.folderId.trim() ? parsed.folderId.trim() : "root",
+      };
+    } catch {
+      return {
+        folderId: "root",
+      };
+    }
+  };
+
   const fetchGmailStatus = useCallback(async () => {
     setIsCheckingGmailStatus(true);
 
@@ -153,6 +181,43 @@ export function FeedManager() {
     }
   };
 
+  const fetchDriveStatus = useCallback(async () => {
+    setIsCheckingDriveStatus(true);
+
+    try {
+      const res = await fetch("/api/drive/status", { cache: "no-store" });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to fetch Drive status");
+      }
+
+      setDriveConnected(Boolean(data?.connected));
+      setDriveEmail(typeof data?.email === "string" ? data.email : null);
+    } catch {
+      setDriveConnected(false);
+      setDriveEmail(null);
+    } finally {
+      setIsCheckingDriveStatus(false);
+    }
+  }, []);
+
+  const handleConnectDrive = async () => {
+    try {
+      const res = await fetch("/api/drive/auth/start", { cache: "no-store" });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.authUrl) {
+        throw new Error(data?.error || t("driveAuthFailed"));
+      }
+
+      window.open(data.authUrl as string, "_blank", "noopener,noreferrer");
+      toast(t("driveAuthOpened"), "success");
+    } catch (error: unknown) {
+      toast(getErrorMessage(error, t("driveAuthFailed")), "error");
+    }
+  };
+
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -180,10 +245,18 @@ export function FeedManager() {
   }, [fetchData]);
 
   useEffect(() => {
-    if (isModalOpen && isGmailType) {
+    if (!isModalOpen) {
+      return;
+    }
+
+    if (isGmailType) {
       fetchGmailStatus();
     }
-  }, [fetchGmailStatus, isGmailType, isModalOpen]);
+
+    if (isDriveType) {
+      fetchDriveStatus();
+    }
+  }, [fetchDriveStatus, fetchGmailStatus, isDriveType, isGmailType, isModalOpen]);
 
   const handleOpenModal = (feed?: Feed) => {
     if (feed) {
@@ -195,8 +268,10 @@ export function FeedManager() {
       setTelegramBotToken("");
       setTelegramChannelUsername(feed.type === "telegram" ? extractTelegramUsername(feed.url) : "");
       const gmailMetadata = parseGmailMetadata(feed.type === "gmail" ? feed.metadata : null);
+      const driveMetadata = parseDriveMetadata(feed.type === "drive" ? feed.metadata : null);
       setGmailLabelId(gmailMetadata.labelId);
       setGmailQuery(gmailMetadata.query);
+      setDriveFolderId(driveMetadata.folderId);
     } else {
       setEditingFeed(null);
       setTitle("");
@@ -207,6 +282,7 @@ export function FeedManager() {
       setTelegramChannelUsername("");
       setGmailLabelId("INBOX");
       setGmailQuery("");
+      setDriveFolderId("root");
     }
     setIsModalOpen(true);
   };
@@ -223,6 +299,9 @@ export function FeedManager() {
     setGmailQuery("");
     setGmailConnected(null);
     setGmailEmail(null);
+    setDriveFolderId("root");
+    setDriveConnected(null);
+    setDriveEmail(null);
     setEditingFeed(null);
   };
 
@@ -236,6 +315,7 @@ export function FeedManager() {
       const isEdit = !!editingFeed;
       const isTelegramFeed = type === "telegram";
       const isGmailFeed = type === "gmail";
+      const isDriveFeed = type === "drive";
       const apiUrl = isTelegramFeed
         ? isEdit
           ? `/api/telegram/channels/${editingFeed.id}`
@@ -244,6 +324,10 @@ export function FeedManager() {
           ? isEdit
             ? `/api/gmail/feeds/${editingFeed.id}`
             : "/api/gmail/feeds"
+          : isDriveFeed
+            ? isEdit
+              ? `/api/drive/feeds/${editingFeed.id}`
+              : "/api/drive/feeds"
           : isEdit
             ? `/api/feeds/${editingFeed.id}`
             : "/api/feeds";
@@ -261,6 +345,14 @@ export function FeedManager() {
         throw new Error(t("gmailConnectRequired"));
       }
 
+      if (isDriveFeed && !isEdit && !driveConnected) {
+        throw new Error(t("driveConnectRequired"));
+      }
+
+      if (isDriveFeed && !driveFolderId.trim()) {
+        throw new Error(t("driveFolderRequired"));
+      }
+
       const payload: FeedPayload | Record<string, unknown> = isTelegramFeed
         ? {
             title: title.trim(),
@@ -274,6 +366,12 @@ export function FeedManager() {
               workspaceId: workspaceId || null,
               labelId: gmailLabelId.trim() || "INBOX",
               query: gmailQuery.trim() || null,
+            }
+        : isDriveFeed
+          ? {
+              title: title.trim(),
+              workspaceId: workspaceId || null,
+              folderId: driveFolderId.trim(),
             }
         : {
             title,
@@ -314,6 +412,8 @@ export function FeedManager() {
           ? `/api/telegram/channels/${feed.id}`
           : feed.type === "gmail"
             ? `/api/gmail/feeds/${feed.id}`
+            : feed.type === "drive"
+              ? `/api/drive/feeds/${feed.id}`
           : `/api/feeds/${feed.id}`;
 
       const res = await fetch(endpoint, { method: "DELETE" });
@@ -334,6 +434,8 @@ export function FeedManager() {
           ? `/api/telegram/channels/${feed.id}`
           : feed.type === "gmail"
             ? `/api/gmail/feeds/${feed.id}`
+            : feed.type === "drive"
+              ? `/api/drive/feeds/${feed.id}`
           : `/api/feeds/${feed.id}`;
 
       const res = await fetch(endpoint, {
@@ -375,12 +477,16 @@ export function FeedManager() {
   const isEditingFeed = Boolean(editingFeed);
   const isTelegramTokenRequired = isTelegramType && !isEditingFeed;
   const isGmailConnectionRequired = isGmailType && !isEditingFeed;
+  const isDriveConnectionRequired = isDriveType && !isEditingFeed;
+  const isDriveFolderRequired = isDriveType && !driveFolderId.trim();
   const isSubmitDisabled =
     isSubmitting ||
     !title.trim() ||
     (isTelegramType && !telegramChannelUsername.trim()) ||
     (isTelegramTokenRequired && !telegramBotToken.trim()) ||
-    (isGmailConnectionRequired && !gmailConnected);
+    (isGmailConnectionRequired && !gmailConnected) ||
+    (isDriveConnectionRequired && !driveConnected) ||
+    isDriveFolderRequired;
 
   if (isLoading) {
     return (
@@ -583,6 +689,43 @@ export function FeedManager() {
                   value={gmailQuery}
                   onChange={(e) => setGmailQuery(e.target.value)}
                   placeholder={t("gmailQueryPlaceholder")}
+                  className="w-full"
+                />
+              </div>
+            </>
+          ) : isDriveType ? (
+            <>
+              <div className="rounded-lg border border-(--colors-border) bg-(--colors-bg-alt) px-3 py-2 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">
+                    {isCheckingDriveStatus
+                      ? t("driveStatusChecking")
+                      : driveConnected
+                        ? t("driveConnected")
+                        : t("driveDisconnected")}
+                  </p>
+                  {driveEmail ? (
+                    <p className="text-xs opacity-70 truncate">{driveEmail}</p>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="secondary" onClick={fetchDriveStatus} disabled={isCheckingDriveStatus}>
+                    {t("driveRefreshConnection")}
+                  </Button>
+                  <Button type="button" onClick={handleConnectDrive}>
+                    {t("driveConnect")}
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {t("driveFolderId")} <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={driveFolderId}
+                  onChange={(e) => setDriveFolderId(e.target.value)}
+                  placeholder={t("driveFolderPlaceholder")}
                   className="w-full"
                 />
               </div>

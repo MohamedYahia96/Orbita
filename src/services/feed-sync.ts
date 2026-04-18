@@ -8,6 +8,10 @@ import {
   GMAIL_DEFAULT_FAVICON,
   fetchGmailFeedItems,
 } from './fetchers/gmail';
+import {
+  DRIVE_DEFAULT_FAVICON,
+  fetchDriveFeedItems,
+} from './fetchers/drive';
 import prisma from '@/lib/prisma';
 import type { Feed, Prisma } from '@prisma/client';
 
@@ -63,6 +67,10 @@ type GmailFeedMetadata = {
   query: string | null;
 };
 
+type DriveFeedMetadata = {
+  folderId: string;
+};
+
 function parseGmailFeedMetadata(metadata: string | null): GmailFeedMetadata {
   if (!metadata) {
     return {
@@ -92,6 +100,31 @@ function parseGmailFeedMetadata(metadata: string | null): GmailFeedMetadata {
     return {
       labelIds: ['INBOX'],
       query: null,
+    };
+  }
+}
+
+function parseDriveFeedMetadata(metadata: string | null): DriveFeedMetadata {
+  if (!metadata) {
+    return {
+      folderId: 'root',
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(metadata) as {
+      folderId?: unknown;
+    };
+
+    return {
+      folderId:
+        typeof parsed.folderId === 'string' && parsed.folderId.trim()
+          ? parsed.folderId.trim()
+          : 'root',
+    };
+  } catch {
+    return {
+      folderId: 'root',
     };
   }
 }
@@ -207,6 +240,35 @@ export async function syncSingleFeed(feed: Feed) {
 
       if (!feed.description && parsedData.email) {
         feedUpdates.description = `Gmail inbox (${parsedData.email})`;
+      }
+    } else if (feed.type === 'drive') {
+      const driveMetadata = parseDriveFeedMetadata(feed.metadata);
+      const parsedData = await fetchDriveFeedItems({
+        userId: feed.userId,
+        folderId: driveMetadata.folderId,
+      });
+
+      newItems = parsedData.items.map((item: ParsedSyncItem) => ({
+        feedId: feed.id,
+        title: item.title,
+        url: item.link,
+        content: item.content,
+        image: item.image,
+        mediaType: item.mediaType || 'article',
+        extraData: JSON.stringify({ guid: item.guid, ...(item.extraData || {}) }),
+        publishedAt: item.pubDate ? new Date(item.pubDate) : new Date(),
+      }));
+
+      if (!feed.favicon) {
+        feedUpdates.favicon = DRIVE_DEFAULT_FAVICON;
+      }
+
+      if (!feed.description) {
+        if (parsedData.folderName) {
+          feedUpdates.description = `Google Drive folder (${parsedData.folderName})`;
+        } else if (parsedData.email) {
+          feedUpdates.description = `Google Drive (${parsedData.email})`;
+        }
       }
     }
 

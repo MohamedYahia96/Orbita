@@ -70,7 +70,7 @@ export async function GET(req: Request) {
 
   if (oauthError) {
     return htmlResponse({
-      title: "Gmail connection failed",
+      title: "Google connection failed",
       message: `Google OAuth returned an error: ${oauthError}. You can close this window and try again.`,
       shouldClose: false,
     });
@@ -103,17 +103,17 @@ export async function GET(req: Request) {
     const result = await completeGoogleOAuthForUser(user.id, code);
 
     return htmlResponse({
-      title: "Gmail connected",
+      title: "Google account connected",
       message: result.email
-        ? `Gmail account ${result.email} is now connected. You can close this window.`
-        : "Gmail account connected successfully. You can close this window.",
+        ? `Google account ${result.email} is now connected. You can close this window.`
+        : "Google account connected successfully. You can close this window.",
       shouldClose: true,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unexpected OAuth callback failure.";
 
     return htmlResponse({
-      title: "Gmail connection failed",
+      title: "Google connection failed",
       message,
       shouldClose: false,
     });
