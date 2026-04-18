@@ -1,17 +1,38 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getFirstUser } from '@/lib/current-user';
+import { getOrCreateDemoUser } from '@/lib/current-user';
+import {
+  resolveFocusModeState,
+  sanitizeFocusModeSettings,
+} from '@/lib/focus-mode';
 
 export async function GET() {
   try {
-    const user = await getFirstUser();
-    if (!user) return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+    const user = await getOrCreateDemoUser();
+    let focusSettingsRaw: unknown = null;
+    if (user.focusModeSettings) {
+      try {
+        focusSettingsRaw = JSON.parse(user.focusModeSettings);
+      } catch {
+        focusSettingsRaw = null;
+      }
+    }
+
+    const focusSettings = sanitizeFocusModeSettings(focusSettingsRaw);
+    const focusState = resolveFocusModeState(focusSettings);
+    const focusWorkspaceId =
+      focusState.isActive &&
+      focusSettings.muteOutsideWorkspace &&
+      focusSettings.workspaceId
+        ? focusSettings.workspaceId
+        : null;
 
     // Fetch latest 10 unread items
     const notifications = await prisma.feedItem.findMany({
       where: { 
         feed: {
-          userId: user.id
+          userId: user.id,
+          ...(focusWorkspaceId ? { workspaceId: focusWorkspaceId } : {}),
         },
         isRead: false
       },
@@ -24,7 +45,13 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json({ success: true, count: notifications.length, notifications });
+    return NextResponse.json({
+      success: true,
+      count: notifications.length,
+      notifications,
+      focusApplied: Boolean(focusWorkspaceId),
+      focusWorkspaceId,
+    });
   } catch (error) {
     console.error('[API Notifications GET error]', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch notifications' }, { status: 500 });
@@ -33,8 +60,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
     try {
-    const user = await getFirstUser();
-    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+  const user = await getOrCreateDemoUser();
 
         const payload = await req.json();
         const { action, id } = payload;

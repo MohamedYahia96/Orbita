@@ -294,12 +294,14 @@ export async function syncSingleFeed(feed: Feed) {
         // Trigger Web Push Notification
         try {
           const { notifyUsersOfNewItems } = await import('./push-sender');
-          await notifyUsersOfNewItems(
-            feed.title,
-            itemsToInsert.length,
-            itemsToInsert[0]?.title || feed.title,
-            itemsToInsert[0]?.url || null
-          );
+          await notifyUsersOfNewItems({
+            userId: feed.userId,
+            feedWorkspaceId: feed.workspaceId,
+            feedTitle: feed.title,
+            newItemCount: itemsToInsert.length,
+            recentItemTitle: itemsToInsert[0]?.title || feed.title,
+            url: itemsToInsert[0]?.url || null,
+          });
         } catch (pushError) {
           console.warn('[Feed Sync] Push delivery failed:', pushError);
         }

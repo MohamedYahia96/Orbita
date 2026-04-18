@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { FocusModeControl } from "@/components/focus/FocusModeControl";
 
 export default function Header() {
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -84,6 +85,8 @@ export default function Header() {
             onClick={() => setTheme((resolvedTheme || theme) === "dark" ? "light" : "dark")}
             aria-label="Toggle theme"
           />
+
+          <FocusModeControl />
 
           <div className={styles.notifWrap}>
             <NotificationBell />

@@ -1,5 +1,9 @@
 import webpush from 'web-push';
 import prisma from '@/lib/prisma';
+import {
+    resolveFocusModeState,
+    sanitizeFocusModeSettings,
+} from '@/lib/focus-mode';
 
 if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(
@@ -9,11 +13,65 @@ if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   );
 }
 
-export async function notifyUsersOfNewItems(feedTitle: string, newItemCount: number, recentItemTitle: string, url: string | null) {
+type NotifyUsersInput = {
+  userId: string;
+  feedWorkspaceId: string | null;
+  feedTitle: string;
+  newItemCount: number;
+  recentItemTitle: string;
+  url: string | null;
+};
+
+export async function notifyUsersOfNewItems({
+  userId,
+  feedWorkspaceId,
+  feedTitle,
+  newItemCount,
+  recentItemTitle,
+  url,
+}: NotifyUsersInput) {
     if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return;
     
     try {
-        const subscriptions = await prisma.pushSubscription.findMany();
+        const user = await prisma.user.findUnique({
+            where: {
+                id: userId,
+            },
+            select: {
+                focusModeSettings: true,
+            },
+        });
+
+        if (!user) {
+            return;
+        }
+
+        let parsedFocusSettings: unknown = null;
+        if (user.focusModeSettings) {
+            try {
+                parsedFocusSettings = JSON.parse(user.focusModeSettings);
+            } catch {
+                parsedFocusSettings = null;
+            }
+        }
+
+        const focusSettings = sanitizeFocusModeSettings(parsedFocusSettings);
+        const focusState = resolveFocusModeState(focusSettings);
+
+        if (
+            focusState.isActive &&
+            focusSettings.muteOutsideWorkspace &&
+            focusSettings.workspaceId &&
+            focusSettings.workspaceId !== feedWorkspaceId
+        ) {
+            return;
+        }
+
+        const subscriptions = await prisma.pushSubscription.findMany({
+            where: {
+                userId,
+            },
+        });
         if (!subscriptions.length) return;
 
         const payload = JSON.stringify({

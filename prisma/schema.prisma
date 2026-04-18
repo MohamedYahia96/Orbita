@@ -23,6 +23,7 @@ model User {
   locale    String   @default("en")
   plan      String   @default("free")
   dashboardLayout String?
+  focusModeSettings String?
 
   // Relations
   workspaces    Workspace[]
