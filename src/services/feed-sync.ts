@@ -4,6 +4,10 @@ import {
   TELEGRAM_DEFAULT_FAVICON,
   fetchTelegramChannelUpdates,
 } from './fetchers/telegram';
+import {
+  GMAIL_DEFAULT_FAVICON,
+  fetchGmailFeedItems,
+} from './fetchers/gmail';
 import prisma from '@/lib/prisma';
 import type { Feed, Prisma } from '@prisma/client';
 
@@ -53,6 +57,44 @@ type ParsedSyncItem = {
   mediaType?: 'article' | 'video' | 'image';
   extraData?: Record<string, unknown>;
 };
+
+type GmailFeedMetadata = {
+  labelIds: string[];
+  query: string | null;
+};
+
+function parseGmailFeedMetadata(metadata: string | null): GmailFeedMetadata {
+  if (!metadata) {
+    return {
+      labelIds: ['INBOX'],
+      query: null,
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(metadata) as {
+      labelIds?: unknown;
+      query?: unknown;
+    };
+
+    const labelIds = Array.isArray(parsed.labelIds)
+      ? parsed.labelIds
+          .filter((label): label is string => typeof label === 'string')
+          .map((label) => label.trim())
+          .filter((label) => label.length > 0)
+      : [];
+
+    return {
+      labelIds: labelIds.length > 0 ? labelIds : ['INBOX'],
+      query: typeof parsed.query === 'string' && parsed.query.trim() ? parsed.query.trim() : null,
+    };
+  } catch {
+    return {
+      labelIds: ['INBOX'],
+      query: null,
+    };
+  }
+}
 
 export async function syncSingleFeed(feed: Feed) {
   let newItems: Prisma.FeedItemCreateManyInput[] = [];
@@ -113,7 +155,6 @@ export async function syncSingleFeed(feed: Feed) {
       const parsedData = await fetchTelegramChannelUpdates({
         botToken: telegramConfig.botToken,
         channelUsername: telegramConfig.channelUsername,
-        lastUpdateId: telegramConfig.lastUpdateId,
       });
 
       newItems = parsedData.items.map((item: ParsedSyncItem) => ({
@@ -140,6 +181,32 @@ export async function syncSingleFeed(feed: Feed) {
 
       if (!feed.favicon) {
         feedUpdates.favicon = TELEGRAM_DEFAULT_FAVICON;
+      }
+    } else if (feed.type === 'gmail') {
+      const gmailMetadata = parseGmailFeedMetadata(feed.metadata);
+      const parsedData = await fetchGmailFeedItems({
+        userId: feed.userId,
+        labelIds: gmailMetadata.labelIds,
+        query: gmailMetadata.query,
+      });
+
+      newItems = parsedData.items.map((item: ParsedSyncItem) => ({
+        feedId: feed.id,
+        title: item.title,
+        url: item.link,
+        content: item.content,
+        image: item.image,
+        mediaType: item.mediaType || 'article',
+        extraData: JSON.stringify({ guid: item.guid, ...(item.extraData || {}) }),
+        publishedAt: item.pubDate ? new Date(item.pubDate) : new Date(),
+      }));
+
+      if (!feed.favicon) {
+        feedUpdates.favicon = GMAIL_DEFAULT_FAVICON;
+      }
+
+      if (!feed.description && parsedData.email) {
+        feedUpdates.description = `Gmail inbox (${parsedData.email})`;
       }
     }
 

@@ -57,7 +57,6 @@ export type TelegramFetchResult = {
 type FetchTelegramChannelUpdatesOptions = {
   botToken: string;
   channelUsername: string;
-  lastUpdateId?: number | null;
   limit?: number;
 };
 
@@ -141,7 +140,6 @@ export async function resolveTelegramChannel({
 export async function fetchTelegramChannelUpdates({
   botToken,
   channelUsername,
-  lastUpdateId,
   limit = 50,
 }: FetchTelegramChannelUpdatesOptions): Promise<TelegramFetchResult> {
   const resolvedChannel = await resolveTelegramChannel({ botToken, channelUsername });
@@ -152,14 +150,13 @@ export async function fetchTelegramChannelUpdates({
     allowed_updates: JSON.stringify(["channel_post"]),
   };
 
-  if (typeof lastUpdateId === "number") {
-    params.offset = String(lastUpdateId + 1);
-  }
+  // Do not pass getUpdates offset because offset is global for the bot token,
+  // which can skip posts when the same bot is linked to multiple channels.
 
   const updates = await callTelegramApi<TelegramUpdate[]>(botToken, "getUpdates", params);
 
   const sortedUpdates = [...updates].sort((a, b) => a.update_id - b.update_id);
-  let highestUpdateId = typeof lastUpdateId === "number" ? lastUpdateId : null;
+  let highestUpdateId: number | null = null;
   const items: TelegramFetchedItem[] = [];
 
   for (const update of sortedUpdates) {

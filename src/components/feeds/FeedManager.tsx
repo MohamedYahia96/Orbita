@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { EmptyState, Button, Card, Input, Modal, useToast } from "@/components/ui";
-import { Rss, Plus, Edit2, Trash2, Loader2, Link as LinkIcon, Video, Code, Pin, RefreshCw, Send } from "lucide-react";
+import { Rss, Plus, Edit2, Trash2, Loader2, Link as LinkIcon, Video, Code, Pin, RefreshCw, Send, Mail } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 type Feed = {
@@ -13,6 +13,7 @@ type Feed = {
   type: string;
   platform: string | null;
   favicon: string | null;
+  metadata: string | null;
   workspaceId: string | null;
   isPinned: boolean;
 };
@@ -36,6 +37,7 @@ const PLATFORMS = [
   { id: "youtube", labelKey: "platformYoutube", icon: <Video size={16} /> },
   { id: "github", labelKey: "platformGithub", icon: <Code size={16} /> },
   { id: "telegram", labelKey: "platformTelegram", icon: <Send size={16} /> },
+  { id: "gmail", labelKey: "platformGmail", icon: <Mail size={16} /> },
 ];
 
 export function FeedManager() {
@@ -54,6 +56,11 @@ export function FeedManager() {
   const [workspaceId, setWorkspaceId] = useState("");
   const [telegramBotToken, setTelegramBotToken] = useState("");
   const [telegramChannelUsername, setTelegramChannelUsername] = useState("");
+  const [gmailLabelId, setGmailLabelId] = useState("INBOX");
+  const [gmailQuery, setGmailQuery] = useState("");
+  const [gmailConnected, setGmailConnected] = useState<boolean | null>(null);
+  const [gmailEmail, setGmailEmail] = useState<string | null>(null);
+  const [isCheckingGmailStatus, setIsCheckingGmailStatus] = useState(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -61,6 +68,7 @@ export function FeedManager() {
   const { toast } = useToast();
 
   const isTelegramType = type === "telegram";
+  const isGmailType = type === "gmail";
 
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;
@@ -75,6 +83,73 @@ export function FeedManager() {
       return segment.replace(/^@+/, "");
     } catch {
       return "";
+    }
+  };
+
+  const parseGmailMetadata = (metadata: string | null) => {
+    if (!metadata) {
+      return {
+        labelId: "INBOX",
+        query: "",
+      };
+    }
+
+    try {
+      const parsed = JSON.parse(metadata) as {
+        labelIds?: unknown;
+        query?: unknown;
+      };
+
+      const labelIds = Array.isArray(parsed.labelIds)
+        ? parsed.labelIds.filter((label): label is string => typeof label === "string")
+        : [];
+
+      return {
+        labelId: labelIds[0] || "INBOX",
+        query: typeof parsed.query === "string" ? parsed.query : "",
+      };
+    } catch {
+      return {
+        labelId: "INBOX",
+        query: "",
+      };
+    }
+  };
+
+  const fetchGmailStatus = useCallback(async () => {
+    setIsCheckingGmailStatus(true);
+
+    try {
+      const res = await fetch("/api/gmail/status", { cache: "no-store" });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to fetch Gmail status");
+      }
+
+      setGmailConnected(Boolean(data?.connected));
+      setGmailEmail(typeof data?.email === "string" ? data.email : null);
+    } catch {
+      setGmailConnected(false);
+      setGmailEmail(null);
+    } finally {
+      setIsCheckingGmailStatus(false);
+    }
+  }, []);
+
+  const handleConnectGmail = async () => {
+    try {
+      const res = await fetch("/api/gmail/auth/start", { cache: "no-store" });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok || !data?.authUrl) {
+        throw new Error(data?.error || t("gmailAuthFailed"));
+      }
+
+      window.open(data.authUrl as string, "_blank", "noopener,noreferrer");
+      toast(t("gmailAuthOpened"), "success");
+    } catch (error: unknown) {
+      toast(getErrorMessage(error, t("gmailAuthFailed")), "error");
     }
   };
 
@@ -104,6 +179,12 @@ export function FeedManager() {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    if (isModalOpen && isGmailType) {
+      fetchGmailStatus();
+    }
+  }, [fetchGmailStatus, isGmailType, isModalOpen]);
+
   const handleOpenModal = (feed?: Feed) => {
     if (feed) {
       setEditingFeed(feed);
@@ -113,6 +194,9 @@ export function FeedManager() {
       setWorkspaceId(feed.workspaceId || "");
       setTelegramBotToken("");
       setTelegramChannelUsername(feed.type === "telegram" ? extractTelegramUsername(feed.url) : "");
+      const gmailMetadata = parseGmailMetadata(feed.type === "gmail" ? feed.metadata : null);
+      setGmailLabelId(gmailMetadata.labelId);
+      setGmailQuery(gmailMetadata.query);
     } else {
       setEditingFeed(null);
       setTitle("");
@@ -121,6 +205,8 @@ export function FeedManager() {
       setWorkspaceId("");
       setTelegramBotToken("");
       setTelegramChannelUsername("");
+      setGmailLabelId("INBOX");
+      setGmailQuery("");
     }
     setIsModalOpen(true);
   };
@@ -133,6 +219,10 @@ export function FeedManager() {
     setWorkspaceId("");
     setTelegramBotToken("");
     setTelegramChannelUsername("");
+    setGmailLabelId("INBOX");
+    setGmailQuery("");
+    setGmailConnected(null);
+    setGmailEmail(null);
     setEditingFeed(null);
   };
 
@@ -145,13 +235,18 @@ export function FeedManager() {
     try {
       const isEdit = !!editingFeed;
       const isTelegramFeed = type === "telegram";
+      const isGmailFeed = type === "gmail";
       const apiUrl = isTelegramFeed
         ? isEdit
           ? `/api/telegram/channels/${editingFeed.id}`
           : "/api/telegram/channels"
-        : isEdit
-          ? `/api/feeds/${editingFeed.id}`
-          : "/api/feeds";
+        : isGmailFeed
+          ? isEdit
+            ? `/api/gmail/feeds/${editingFeed.id}`
+            : "/api/gmail/feeds"
+          : isEdit
+            ? `/api/feeds/${editingFeed.id}`
+            : "/api/feeds";
       const method = isEdit ? "PATCH" : "POST";
 
       if (isTelegramFeed && !telegramChannelUsername.trim()) {
@@ -162,6 +257,10 @@ export function FeedManager() {
         throw new Error(t("telegramTokenRequired"));
       }
 
+      if (isGmailFeed && !isEdit && !gmailConnected) {
+        throw new Error(t("gmailConnectRequired"));
+      }
+
       const payload: FeedPayload | Record<string, unknown> = isTelegramFeed
         ? {
             title: title.trim(),
@@ -169,6 +268,13 @@ export function FeedManager() {
             channelUsername: telegramChannelUsername.trim(),
             ...(telegramBotToken.trim() ? { botToken: telegramBotToken.trim() } : {}),
           }
+        : isGmailFeed
+          ? {
+              title: title.trim(),
+              workspaceId: workspaceId || null,
+              labelId: gmailLabelId.trim() || "INBOX",
+              query: gmailQuery.trim() || null,
+            }
         : {
             title,
             type,
@@ -206,6 +312,8 @@ export function FeedManager() {
       const endpoint =
         feed.type === "telegram"
           ? `/api/telegram/channels/${feed.id}`
+          : feed.type === "gmail"
+            ? `/api/gmail/feeds/${feed.id}`
           : `/api/feeds/${feed.id}`;
 
       const res = await fetch(endpoint, { method: "DELETE" });
@@ -224,6 +332,8 @@ export function FeedManager() {
       const endpoint =
         feed.type === "telegram"
           ? `/api/telegram/channels/${feed.id}`
+          : feed.type === "gmail"
+            ? `/api/gmail/feeds/${feed.id}`
           : `/api/feeds/${feed.id}`;
 
       const res = await fetch(endpoint, {
@@ -264,11 +374,13 @@ export function FeedManager() {
 
   const isEditingFeed = Boolean(editingFeed);
   const isTelegramTokenRequired = isTelegramType && !isEditingFeed;
+  const isGmailConnectionRequired = isGmailType && !isEditingFeed;
   const isSubmitDisabled =
     isSubmitting ||
     !title.trim() ||
     (isTelegramType && !telegramChannelUsername.trim()) ||
-    (isTelegramTokenRequired && !telegramBotToken.trim());
+    (isTelegramTokenRequired && !telegramBotToken.trim()) ||
+    (isGmailConnectionRequired && !gmailConnected);
 
   if (isLoading) {
     return (
@@ -327,7 +439,7 @@ export function FeedManager() {
                 <div className="flex items-center">
                   <button 
                     onClick={() => togglePin(feed)}
-                    className={`p-1 border-none bg-transparent hover:bg-(--color-bg-hover) rounded transition-colors cursor-pointer ${feed.isPinned ? "text-[var(--color-warning)] opacity-100" : "opacity-40 hover:opacity-100"}`}
+                    className={`p-1 border-none bg-transparent hover:bg-(--color-bg-hover) rounded transition-colors cursor-pointer ${feed.isPinned ? "text-(--color-warning) opacity-100" : "opacity-40 hover:opacity-100"}`}
                     title={feed.isPinned ? t("unpinAction") : t("pinAction")}
                   >
                     <Pin size={16} fill={feed.isPinned ? "currentColor" : "none"} />
@@ -426,6 +538,53 @@ export function FeedManager() {
                 {!isTelegramTokenRequired ? (
                   <p className="text-xs opacity-70 mt-1">{t("telegramTokenOptionalOnEdit")}</p>
                 ) : null}
+              </div>
+            </>
+          ) : isGmailType ? (
+            <>
+              <div className="rounded-lg border border-(--colors-border) bg-(--colors-bg-alt) px-3 py-2 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">
+                    {isCheckingGmailStatus
+                      ? t("gmailStatusChecking")
+                      : gmailConnected
+                        ? t("gmailConnected")
+                        : t("gmailDisconnected")}
+                  </p>
+                  {gmailEmail ? (
+                    <p className="text-xs opacity-70 truncate">{gmailEmail}</p>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button type="button" variant="secondary" onClick={fetchGmailStatus} disabled={isCheckingGmailStatus}>
+                    {t("gmailRefreshConnection")}
+                  </Button>
+                  <Button type="button" onClick={handleConnectGmail}>
+                    {t("gmailConnect")}
+                  </Button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {t("gmailLabelId")} <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={gmailLabelId}
+                  onChange={(e) => setGmailLabelId(e.target.value.toUpperCase())}
+                  placeholder={t("gmailLabelPlaceholder")}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">{t("gmailQuery")}</label>
+                <Input
+                  value={gmailQuery}
+                  onChange={(e) => setGmailQuery(e.target.value)}
+                  placeholder={t("gmailQueryPlaceholder")}
+                  className="w-full"
+                />
               </div>
             </>
           ) : (

@@ -201,6 +201,8 @@ export function normalizeFeedInput(input: FeedInput): FeedNormalization {
     platform = "github";
   } else if (type === "telegram") {
     platform = "telegram";
+  } else if (type === "gmail") {
+    platform = "gmail";
   }
 
   if (parsedUrl && !favicon) {
