@@ -25,7 +25,7 @@ export async function GET(req: Request) {
         });
 
         return NextResponse.json({ success: true, items });
-    } catch(e) {
+    } catch {
         return NextResponse.json({ success: false }, { status: 500 });
     }
 }

@@ -20,7 +20,11 @@ export async function GET() {
         });
 
         // Smart Digest Categorization
-        const categorized: any = { articles: [], videos: [], others: [] };
+        const categorized: {
+            articles: typeof items;
+            videos: typeof items;
+            others: typeof items;
+        } = { articles: [], videos: [], others: [] };
         items.forEach(i => {
            if (i.mediaType === 'video') categorized.videos.push(i);
            else if (i.mediaType === 'article') categorized.articles.push(i);

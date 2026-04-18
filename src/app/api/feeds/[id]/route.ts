@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { normalizeFeedInput } from "@/lib/feed-source";
 
 export async function PATCH(
   req: Request,
@@ -10,52 +11,45 @@ export async function PATCH(
     const body = await req.json();
     const { title, url, favicon, description, type, platform, integrationLevel, workspaceId, isPinned, rssUrl } = body;
 
-    let finalType = type;
-    let finalPlatform = platform;
-    let finalFavicon = favicon;
+    const existingFeed = await prisma.feed.findUnique({ where: { id } });
+    if (!existingFeed) {
+      return NextResponse.json({ error: "Feed not found" }, { status: 404 });
+    }
 
-    if (url && type !== "rss") {
-      try {
-        const parsedUrl = new URL(url);
-        const hostname = parsedUrl.hostname.toLowerCase();
-        
-        if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) {
-          finalType = "youtube";
-          finalPlatform = "youtube";
-        } else if (hostname.includes('github.com')) {
-          finalType = "github";
-          finalPlatform = "github";
-        } else if (hostname.includes('facebook.com') || hostname.includes('fb.watch')) {
-          finalPlatform = "facebook";
-        } else if (hostname.includes('whatsapp.com') || hostname.includes('wa.me')) {
-          finalPlatform = "whatsapp";
-        } else if (hostname.includes('telegram.org') || hostname.includes('t.me')) {
-          finalPlatform = "telegram";
-        } else if (hostname.includes('twitter.com') || hostname.includes('x.com')) {
-          finalPlatform = "twitter";
-        }
-        
-        if (!finalFavicon) {
-          finalFavicon = `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
-        }
-      } catch (e) {
-        // Invalid URL, ignore
-      }
+    const nextUrl =
+      url !== undefined ? (typeof url === "string" && url.trim() ? url.trim() : null) : existingFeed.url;
+    const nextRssUrl =
+      rssUrl !== undefined
+        ? (typeof rssUrl === "string" && rssUrl.trim() ? rssUrl.trim() : null)
+        : existingFeed.rssUrl;
+    const nextFavicon =
+      favicon !== undefined ? (typeof favicon === "string" && favicon.trim() ? favicon.trim() : null) : existingFeed.favicon;
+
+    const normalization = normalizeFeedInput({
+      type: type !== undefined ? type : existingFeed.type,
+      platform: platform !== undefined ? platform : existingFeed.platform,
+      url: nextUrl,
+      rssUrl: nextRssUrl,
+      favicon: nextFavicon,
+    });
+
+    if (normalization.error) {
+      return NextResponse.json({ error: normalization.error }, { status: 400 });
     }
 
     const feed = await prisma.feed.update({
       where: { id },
       data: { 
-        title, 
-        url, 
-        favicon: finalFavicon !== undefined ? finalFavicon : undefined, 
-        description, 
-        type: finalType !== undefined ? finalType : undefined, 
-        platform: finalPlatform !== undefined ? finalPlatform : undefined, 
-        integrationLevel, 
-        workspaceId, 
+        title: title !== undefined ? title : undefined,
+        url: url !== undefined ? nextUrl : undefined,
+        favicon: normalization.favicon,
+        description: description !== undefined ? description : undefined,
+        type: normalization.type,
+        platform: normalization.platform,
+        integrationLevel,
+        workspaceId: workspaceId !== undefined ? workspaceId || null : undefined,
         isPinned,
-        rssUrl
+        rssUrl: normalization.rssUrl,
       },
     });
 

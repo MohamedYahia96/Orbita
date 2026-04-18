@@ -27,7 +27,7 @@ export async function scrapeLinkData(url: string) {
         try {
            const parsedUrl = new URL(url);
            faviconUrl = `${parsedUrl.protocol}//${parsedUrl.host}${faviconUrl.startsWith('/') ? '' : '/'}${faviconUrl}`;
-        } catch(e) {
+          } catch {
            faviconUrl = undefined;
         }
     }

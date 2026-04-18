@@ -14,7 +14,7 @@ export async function GET() {
         });
 
         return NextResponse.json({ success: true, timeline: items });
-    } catch(e) {
+    } catch {
         return NextResponse.json({ success: false }, { status: 500 });
     }
 }

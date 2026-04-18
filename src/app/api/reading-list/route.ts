@@ -78,6 +78,30 @@ export async function POST(req: Request) {
       );
     }
 
+    const normalizedTagIds = Array.isArray(tagIds)
+      ? tagIds.filter((tagId: unknown): tagId is string => typeof tagId === "string" && tagId.trim().length > 0)
+      : [];
+
+    let validTagIds: string[] = [];
+    if (normalizedTagIds.length > 0) {
+      const userTags = await prisma.tag.findMany({
+        where: {
+          userId,
+          id: { in: normalizedTagIds },
+        },
+        select: { id: true },
+      });
+
+      validTagIds = userTags.map((tag) => tag.id);
+
+      if (validTagIds.length !== normalizedTagIds.length) {
+        return NextResponse.json(
+          { error: "One or more tagIds are invalid for this user" },
+          { status: 400 }
+        );
+      }
+    }
+
     const feed = await getReadingListFeed(userId);
 
     const feedItem = await prisma.feedItem.create({
@@ -88,8 +112,8 @@ export async function POST(req: Request) {
         isSavedForLater: true,
         feedId: feed.id,
         // associate tags if provided
-        tags: tagIds && tagIds.length > 0 ? {
-          create: tagIds.map((tagId: string) => ({
+        tags: validTagIds.length > 0 ? {
+          create: validTagIds.map((tagId: string) => ({
             tag: { connect: { id: tagId } }
           }))
         } : undefined

@@ -1,5 +1,31 @@
 import Parser from 'rss-parser';
 
+type RssItem = Parser.Item & {
+  id?: string;
+  mediaThumbnail?: {
+    $?: {
+      url?: string;
+    };
+  };
+  mediaGroup?: {
+    'media:thumbnail'?: Array<{
+      $?: {
+        url?: string;
+      };
+    }>;
+  };
+  contentEncoded?: string;
+};
+
+type ParsedFeed = {
+  title?: string;
+  description?: string;
+  image?: {
+    url?: string;
+  };
+  items: RssItem[];
+};
+
 export const rssParser = new Parser({
   customFields: {
     item: [
@@ -12,13 +38,13 @@ export const rssParser = new Parser({
 
 export async function fetchRssFeed(url: string) {
   try {
-    const feed = await rssParser.parseURL(url);
+    const feed = (await rssParser.parseURL(url)) as ParsedFeed;
     
     return {
       title: feed.title,
       description: feed.description,
       favicon: feed.image?.url,
-      items: feed.items.map((item: any) => {
+      items: feed.items.map((item) => {
         // Extract standard fields
         const image = extractImage(item);
         
@@ -39,7 +65,7 @@ export async function fetchRssFeed(url: string) {
 }
 
 // Utility to reliably extract an image from an RSS item (especially YouTube)
-function extractImage(item: any): string | null {
+function extractImage(item: RssItem): string | null {
   // Check custom media extensions for YouTube
   if (item.mediaGroup && item.mediaGroup['media:thumbnail']) {
     const thumb = item.mediaGroup['media:thumbnail'][0];

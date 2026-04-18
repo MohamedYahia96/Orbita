@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
@@ -23,17 +24,41 @@ export interface SidebarProps {
   onToggle: () => void;
 }
 
+type NavHref =
+  | "/overview"
+  | "/feeds"
+  | "/workspaces"
+  | "/reading-list"
+  | "/tags"
+  | "/digest"
+  | "/notifications"
+  | "/settings";
+
+type NavItem = {
+  href: NavHref;
+  label: string;
+  icon: ReactNode;
+};
+
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const t = useTranslations("Sidebar");
 
-  const NAV_ITEMS = [
+  const getOptionalLabel = (key: string, fallback: string) => {
+    try {
+      return t(key as Parameters<typeof t>[0]);
+    } catch {
+      return fallback;
+    }
+  };
+
+  const NAV_ITEMS: NavItem[] = [
     { href: "/overview", label: t("overview"), icon: <LayoutDashboard size={20} /> },
     { href: "/feeds", label: t("feeds"), icon: <Rss size={20} /> },
     { href: "/workspaces", label: t("workspaces"), icon: <LayoutGrid size={20} /> },
     { href: "/reading-list", label: t("readingList"), icon: <Bookmark size={20} /> },
     { href: "/tags", label: t("tags"), icon: <TagIcon size={20} /> },
-    { href: "/digest", label: (t as any)("digest") || "Smart Digest", icon: <Mail size={20} /> },
+    { href: "/digest", label: getOptionalLabel("digest", "Smart Digest"), icon: <Mail size={20} /> },
     { href: "/notifications", label: t("notifications"), icon: <Bell size={20} /> },
     { href: "/settings", label: t("settings"), icon: <Settings size={20} /> },
   ];
@@ -64,7 +89,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             const isActive = pathname.endsWith(item.href) || (pathname.endsWith('/') && item.href === '/overview');
             const linkContent = (
               <Link
-                href={item.href as any}
+                href={item.href}
                 className={`${styles.navItem} ${isActive ? styles.active : ""}`}
               >
                 <div className={styles.navIcon}>{item.icon}</div>

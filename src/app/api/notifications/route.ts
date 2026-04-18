@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getFirstUser } from '@/lib/current-user';
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    // Determine the user's latest feeds or unread feeds
-    // In a real app we'd get `userId` from auth session
-    const user = await prisma.user.findFirst();
+    const user = await getFirstUser();
     if (!user) return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
 
     // Fetch latest 10 unread items
@@ -34,18 +33,30 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     try {
+    const user = await getFirstUser();
+    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+
         const payload = await req.json();
         const { action, id } = payload;
         
         if (action === 'mark_read' && id) {
-            await prisma.feedItem.update({
-                where: { id },
+      const result = await prisma.feedItem.updateMany({
+        where: {
+          id,
+          feed: {
+            userId: user.id
+          }
+        },
                 data: { isRead: true }
             });
+
+      if (result.count === 0) {
+        return NextResponse.json({ success: false, error: 'Notification not found' }, { status: 404 });
+      }
         }
         
         return NextResponse.json({ success: true });
-    } catch (e) {
+    } catch {
         return NextResponse.json({ success: false }, { status: 500 });
     }
 }

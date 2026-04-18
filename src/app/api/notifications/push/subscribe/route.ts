@@ -1,19 +1,42 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import webpush from 'web-push';
+import { getFirstUser } from '@/lib/current-user';
 
-webpush.setVapidDetails(
-  'mailto:kontakt@orbita.com',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY as string,
-  process.env.VAPID_PRIVATE_KEY as string
-);
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+const hasVapidConfig = Boolean(vapidPublicKey && vapidPrivateKey);
+
+if (hasVapidConfig) {
+  webpush.setVapidDetails(
+    'mailto:kontakt@orbita.com',
+    vapidPublicKey as string,
+    vapidPrivateKey as string
+  );
+}
 
 export async function POST(req: Request) {
   try {
+    if (!hasVapidConfig) {
+      return NextResponse.json(
+        { success: false, error: 'Push is not configured. Missing VAPID keys.' },
+        { status: 503 }
+      );
+    }
+
     const subscription = await req.json();
+    if (
+      !subscription?.endpoint ||
+      !subscription?.keys?.p256dh ||
+      !subscription?.keys?.auth
+    ) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid push subscription payload' },
+        { status: 400 }
+      );
+    }
     
-    // Quick user resolver (since we don't have session auth completely wired in this prompt block)
-    const user = await prisma.user.findFirst();
+    const user = await getFirstUser();
     if (!user) return new NextResponse('Unauthorized', { status: 401 });
 
     await prisma.pushSubscription.upsert({
@@ -32,8 +55,9 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ success: true });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Push subscription failed';
     console.error("Push subscription error", err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import styles from "./Avatar.module.css";
 
 export interface AvatarProps {
@@ -7,6 +8,13 @@ export interface AvatarProps {
   size?: "sm" | "md" | "lg" | "xl";
   className?: string;
 }
+
+const sizeToPixels = {
+  sm: 28,
+  md: 36,
+  lg: 44,
+  xl: 56,
+} as const;
 
 function getInitials(name: string): string {
   return name
@@ -37,11 +45,12 @@ export default function Avatar({
   const classes = [styles.avatar, styles[size], className]
     .filter(Boolean)
     .join(" ");
+  const pixelSize = sizeToPixels[size];
 
   if (src) {
     return (
       <div className={classes}>
-        <img src={src} alt={alt || name} className={styles.image} />
+        <Image src={src} alt={alt || name || "Avatar"} width={pixelSize} height={pixelSize} className={styles.image} unoptimized />
       </div>
     );
   }

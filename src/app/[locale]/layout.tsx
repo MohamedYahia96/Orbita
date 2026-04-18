@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { notFound } from "next/navigation";
 import "../globals.css";
 import { Providers } from "../providers";
 import { NextIntlClientProvider } from "next-intl";
+import { routing } from "@/i18n/routing";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,6 +33,11 @@ export default async function RootLayout({
   params: Promise<{ locale: string }>;
 }>) {
   const { locale } = await params;
+
+  if (!routing.locales.some((supportedLocale) => supportedLocale === locale)) {
+    notFound();
+  }
+
   const messages = (await import(`../../../messages/${locale}.json`)).default;
   
   return (

@@ -1,7 +1,6 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
 import {
   Menu,
   Moon,
@@ -9,7 +8,7 @@ import {
   Search,
   Languages,
 } from "lucide-react";
-import { Input, Avatar, Badge, Button } from "@/components/ui";
+import { Input, Avatar, Button } from "@/components/ui";
 import styles from "./Header.module.css";
 import { usePathname } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -17,25 +16,36 @@ import { useRouter } from "@/i18n/routing";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 export default function Header() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const pathname = usePathname();
   const locale = useLocale();
   const router = useRouter();
   const t = useTranslations("Dashboard");
   const tSidebar = useTranslations("Sidebar");
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const getPageTitle = () => {
     const path = pathname?.split('/').pop() || "overview";
+    const titleMap: Record<string, string> = {
+      overview: "overview",
+      feeds: "feeds",
+      workspaces: "workspaces",
+      "reading-list": "readingList",
+      tags: "tags",
+      digest: "digest",
+      notifications: "notifications",
+      settings: "settings",
+    };
+
+    const translatedKey = titleMap[path];
     try {
-      return tSidebar(path as any);
+      if (translatedKey) {
+        return tSidebar(translatedKey as Parameters<typeof tSidebar>[0]);
+      }
     } catch {
-      return path.charAt(0).toUpperCase() + path.slice(1);
+      // Fallback to a formatted segment when translation key is missing.
     }
+
+    return path.charAt(0).toUpperCase() + path.slice(1);
   };
 
   const toggleLocale = () => {
@@ -67,15 +77,13 @@ export default function Header() {
         <div className={styles.actions}>
           <Button variant="ghost" size="sm" icon={<Languages size={18} />} onClick={toggleLocale} aria-label="Toggle language" />
 
-          {mounted && (
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label="Toggle theme"
-            />
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={resolvedTheme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            onClick={() => setTheme((resolvedTheme || theme) === "dark" ? "light" : "dark")}
+            aria-label="Toggle theme"
+          />
 
           <div className={styles.notifWrap}>
             <NotificationBell />

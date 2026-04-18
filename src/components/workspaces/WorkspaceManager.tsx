@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { EmptyState, Button, Card, Input, Modal, useToast } from "@/components/ui";
 import { LayoutGrid, Plus, Edit2, Trash2, Loader2, Folder } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -27,11 +27,7 @@ export function WorkspaceManager() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchWorkspaces();
-  }, []);
-
-  const fetchWorkspaces = async () => {
+  const fetchWorkspaces = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await fetch("/api/workspaces");
@@ -44,7 +40,11 @@ export function WorkspaceManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast, tCommon]);
+
+  useEffect(() => {
+    fetchWorkspaces();
+  }, [fetchWorkspaces]);
 
   const handleOpenModal = (workspace?: Workspace) => {
     if (workspace) {
@@ -156,14 +156,14 @@ export function WorkspaceManager() {
                 <div className="flex items-center gap-1">
                   <button 
                     onClick={() => handleOpenModal(ws)}
-                    className="p-2 border-none bg-transparent hover:bg-[var(--colors-bg-alt)] rounded-lg transition-colors opacity-70 hover:opacity-100 cursor-pointer"
+                    className="p-2 border-none bg-transparent hover:bg-(--colors-bg-alt) rounded-lg transition-colors opacity-70 hover:opacity-100 cursor-pointer"
                     title="Edit"
                   >
                     <Edit2 size={16} />
                   </button>
                   <button 
                     onClick={() => handleDelete(ws.id)}
-                    className="p-2 border-none bg-transparent hover:bg-[var(--colors-danger)] hover:text-white rounded-lg transition-colors opacity-70 hover:opacity-100 cursor-pointer"
+                    className="p-2 border-none bg-transparent hover:bg-(--colors-danger) hover:text-white rounded-lg transition-colors opacity-70 hover:opacity-100 cursor-pointer"
                   >
                     <Trash2 size={16} />
                   </button>

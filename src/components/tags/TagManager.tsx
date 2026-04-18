@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { EmptyState, Button, Card, Input, Modal, useToast, Badge } from "@/components/ui";
+import { useState, useEffect, useCallback } from "react";
+import { EmptyState, Button, Input, Modal, useToast } from "@/components/ui";
 import { Tag as TagIcon, Plus, Edit2, Trash2, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -26,11 +26,7 @@ export function TagManager() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchTags();
-  }, []);
-
-  const fetchTags = async () => {
+  const fetchTags = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await fetch("/api/tags");
@@ -43,7 +39,11 @@ export function TagManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast, tCommon]);
+
+  useEffect(() => {
+    fetchTags();
+  }, [fetchTags]);
 
   const handleOpenModal = (tag?: Tag) => {
     if (tag) {
@@ -118,7 +118,7 @@ export function TagManager() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 h-full max-w-5xl mx-auto border border-[var(--colors-border)] rounded-2xl bg-[var(--colors-bg-alt)]/30 backdrop-blur-sm shadow-xl">
+    <div className="flex flex-col gap-6 p-6 h-full max-w-5xl mx-auto border border-(--colors-border) rounded-2xl bg-(--colors-bg-alt)/30 backdrop-blur-sm shadow-xl">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-xl font-bold">{t("title")}</h2>
@@ -143,7 +143,7 @@ export function TagManager() {
           {tags.map((tag) => (
             <div 
               key={tag.id} 
-              className="flex items-center gap-2 group px-3 py-1.5 rounded-full border border-[var(--colors-border)] bg-[var(--colors-bg)] shadow-sm hover:border-accent transition-colors"
+              className="flex items-center gap-2 group px-3 py-1.5 rounded-full border border-(--colors-border) bg-(--colors-bg) shadow-sm hover:border-accent transition-colors"
             >
               <div 
                 className="w-3 h-3 rounded-full shrink-0" 
@@ -188,7 +188,7 @@ export function TagManager() {
                 <button
                   key={c}
                   type="button"
-                  className={`w-6 h-6 rounded-full border border-[var(--colors-border)] cursor-pointer transition-transform ${color === c ? 'scale-125 shadow-md ring-2 ring-white/20 ring-offset-1 ring-offset-black' : 'scale-100 opacity-60 hover:opacity-100'}`}
+                  className={`w-6 h-6 rounded-full border border-(--colors-border) cursor-pointer transition-transform ${color === c ? 'scale-125 shadow-md ring-2 ring-white/20 ring-offset-1 ring-offset-black' : 'scale-100 opacity-60 hover:opacity-100'}`}
                   style={{ backgroundColor: c }}
                   onClick={() => setColor(c)}
                 />

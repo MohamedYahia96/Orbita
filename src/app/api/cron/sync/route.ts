@@ -6,21 +6,23 @@ export const runtime = 'nodejs'; // Use nodejs because rss-parser/cheerio might 
 export const maxDuration = 300; // Allow up to 5 minutes to fetch all feeds
 
 export async function GET(req: Request) {
-  // Check if we are in production and running on Vercel
   const authHeader = req.headers.get('authorization');
-  if (
-    process.env.NODE_ENV === 'production' &&
-    process.env.CRON_SECRET &&
-    authHeader !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
-    return new NextResponse('Unauthorized', { status: 401 });
+  if (process.env.NODE_ENV === 'production') {
+    if (!process.env.CRON_SECRET) {
+      return new NextResponse('Cron endpoint misconfigured: CRON_SECRET is missing', { status: 500 });
+    }
+
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
   }
 
   try {
     const results = await syncAllFeeds();
     return NextResponse.json({ success: true, results });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Sync failed';
     console.error('[Cron API Error]', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { EmptyState, Button, Card, Input, Modal, useToast } from "@/components/ui";
 import { Rss, Plus, Edit2, Trash2, Loader2, Link as LinkIcon, Video, Code, Pin, RefreshCw } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -19,6 +20,14 @@ type Feed = {
 type Workspace = {
   id: string;
   name: string;
+};
+
+type FeedPayload = {
+  title: string;
+  type: string;
+  workspaceId: string | null;
+  url: string | null;
+  platform: string | null;
 };
 
 const PLATFORMS = [
@@ -47,11 +56,10 @@ export function FeedManager() {
   const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [feedsRes, wsRes] = await Promise.all([
@@ -71,7 +79,11 @@ export function FeedManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast, tCommon]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleOpenModal = (feed?: Feed) => {
     if (feed) {
@@ -109,7 +121,7 @@ export function FeedManager() {
       const apiUrl = isEdit ? `/api/feeds/${editingFeed.id}` : "/api/feeds";
       const method = isEdit ? "PATCH" : "POST";
 
-      const payload: any = { 
+      const payload: FeedPayload = {
         title, 
         type,
         workspaceId: workspaceId || null,
@@ -123,14 +135,16 @@ export function FeedManager() {
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) throw new Error("Failed to save feed");
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) throw new Error(data?.error || "Failed to save feed");
 
       toast(isEdit ? t("successUpdate") : t("successAdd"), "success");
       handleCloseModal();
       fetchData();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      toast(tCommon("error"), "error");
+      toast(getErrorMessage(error, tCommon("error")), "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -160,7 +174,7 @@ export function FeedManager() {
       });
       if (!res.ok) throw new Error("Failed to update pin status");
       fetchData();
-    } catch(err) {
+    } catch {
       toast(tCommon("error"), "error");
     }
   }
@@ -168,16 +182,26 @@ export function FeedManager() {
   const handleSyncAll = async () => {
     setIsSyncing(true);
     try {
-      const res = await fetch("/api/cron/sync");
-      if (!res.ok) throw new Error("Sync failed");
+      const res = await fetch("/api/feeds/sync", { method: "POST" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || "Sync failed");
       toast(t("successSync"), "success");
       fetchData();
-    } catch(err) {
-      toast(t("failSync"), "error");
+    } catch (error: unknown) {
+      toast(getErrorMessage(error, t("failSync")), "error");
     } finally {
       setIsSyncing(false);
     }
   }
+
+  const getFeedHost = (feed: Feed) => {
+    if (!feed.url) return t("unassigned");
+    try {
+      return new URL(feed.url).hostname;
+    } catch {
+      return feed.url;
+    }
+  };
 
   if (isLoading) {
     return (
@@ -195,7 +219,7 @@ export function FeedManager() {
           <p className="text-sm opacity-70">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={handleSyncAll} variant="secondary" disabled={isSyncing} className="flex items-center gap-2 text-sm bg-[var(--colors-bg-alt)] border-[var(--colors-border)] border">
+          <Button onClick={handleSyncAll} variant="secondary" disabled={isSyncing} className="flex items-center gap-2 text-sm bg-(--colors-bg-alt) border-(--colors-border) border">
             <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} /> {isSyncing ? t("syncing") : t("syncBtn")}
           </Button>
           <Button onClick={() => handleOpenModal()} className="flex items-center gap-2">
@@ -219,9 +243,9 @@ export function FeedManager() {
             <Card key={feed.id} className="p-4 flex flex-col gap-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-[var(--colors-bg-alt)] border border-[var(--colors-border)] overflow-hidden shrink-0">
+                  <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-(--colors-bg-alt) border border-(--colors-border) overflow-hidden shrink-0">
                     {feed.favicon ? (
-                      <img src={feed.favicon} alt={feed.title} className="w-6 h-6 object-contain" />
+                      <Image src={feed.favicon} alt={feed.title} width={24} height={24} className="w-6 h-6 object-contain" unoptimized />
                     ) : (
                       PLATFORMS.find(p => p.id === feed.type)?.icon || <LinkIcon size={20} />
                     )}
@@ -229,27 +253,27 @@ export function FeedManager() {
                   <div className="min-w-0 flex-1">
                     <h3 className="font-semibold text-base truncate">{feed.title}</h3>
                     <p className="text-xs opacity-70 truncate max-w-full">
-                      {feed.url ? new URL(feed.url).hostname : (feed.type === 'rss' && feed.url ? feed.url : t("unassigned"))}
+                      {getFeedHost(feed)}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center">
                   <button 
                     onClick={() => togglePin(feed)}
-                    className={`p-1 border-none bg-transparent hover:bg-[var(--colors-bg-alt)] rounded transition-colors cursor-pointer ${feed.isPinned ? "text-[#f59e0b] opacity-100" : "opacity-40 hover:opacity-100"}`}
+                    className={`p-1 border-none bg-transparent hover:bg-(--colors-bg-alt) rounded transition-colors cursor-pointer ${feed.isPinned ? "text-[#f59e0b] opacity-100" : "opacity-40 hover:opacity-100"}`}
                     title={feed.isPinned ? "Unpin" : "Pin to sidebar"}
                   >
                     <Pin size={16} fill={feed.isPinned ? "currentColor" : "none"} />
                   </button>
                   <button 
                     onClick={() => handleOpenModal(feed)}
-                    className="p-1 border-none bg-transparent hover:bg-[var(--colors-bg-alt)] rounded transition-colors opacity-40 hover:opacity-100 cursor-pointer"
+                    className="p-1 border-none bg-transparent hover:bg-(--colors-bg-alt) rounded transition-colors opacity-40 hover:opacity-100 cursor-pointer"
                   >
                     <Edit2 size={16} />
                   </button>
                   <button 
                     onClick={() => handleDelete(feed.id)}
-                    className="p-1 border-none bg-transparent hover:bg-[var(--colors-danger)] hover:text-white rounded transition-colors opacity-40 hover:opacity-100 cursor-pointer"
+                    className="p-1 border-none bg-transparent hover:bg-(--colors-danger) hover:text-white rounded transition-colors opacity-40 hover:opacity-100 cursor-pointer"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -258,7 +282,7 @@ export function FeedManager() {
               
               {feed.workspaceId && workspaces.find(w => w.id === feed.workspaceId) && (
                 <div className="mt-2 inline-flex">
-                  <span className="text-xs px-2 py-1 bg-[var(--colors-bg-alt)] rounded-md opacity-80 border border-[var(--colors-border)]">
+                  <span className="text-xs px-2 py-1 bg-(--colors-bg-alt) rounded-md opacity-80 border border-(--colors-border)">
                     {workspaces.find(w => w.id === feed.workspaceId)?.name}
                   </span>
                 </div>
@@ -281,7 +305,7 @@ export function FeedManager() {
                   className={`flex items-center gap-2 p-2 rounded-md border text-sm transition-colors cursor-pointer
                     ${type === p.id 
                       ? "border-accent bg-accent/10 text-accent font-medium" 
-                      : "border-[var(--colors-border)] bg-transparent hover:bg-[var(--colors-bg-alt)]"
+                      : "border-(--colors-border) bg-transparent hover:bg-(--colors-bg-alt)"
                     }`}
                 >
                   {p.icon} {p.label}
@@ -314,13 +338,13 @@ export function FeedManager() {
           <div>
             <label className="block text-sm font-medium mb-1">{t("workspace")}</label>
             <select 
-              className="w-full h-10 px-3 bg-transparent border border-[var(--colors-border)] rounded-lg text-[var(--colors-text)] focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="w-full h-10 px-3 bg-transparent border border-(--colors-border) rounded-lg text-(--colors-text) focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               value={workspaceId}
               onChange={(e) => setWorkspaceId(e.target.value)}
             >
-              <option value="" className="bg-[var(--colors-bg)] text-[var(--colors-text)]">{t("unassigned")}</option>
+              <option value="" className="bg-(--colors-bg) text-(--colors-text)">{t("unassigned")}</option>
               {workspaces.map(w => (
-                <option key={w.id} value={w.id} className="bg-[var(--colors-bg)] text-[var(--colors-text)]">{w.name}</option>
+                <option key={w.id} value={w.id} className="bg-(--colors-bg) text-(--colors-text)">{w.name}</option>
               ))}
             </select>
           </div>

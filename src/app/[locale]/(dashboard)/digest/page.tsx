@@ -1,14 +1,36 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Loader2, Mail, ExternalLink, CalendarDays, MessageSquarePlus } from "lucide-react";
-import { Card, Button, EmptyState } from "@/components/ui";
+import { Card, EmptyState } from "@/components/ui";
 import { useTranslations } from "next-intl";
+
+type DigestItem = {
+    id: string;
+    title: string;
+    content: string | null;
+    image: string | null;
+    publishedAt: string;
+    note: string | null;
+    url: string | null;
+    feed?: {
+        title?: string | null;
+        favicon?: string | null;
+    } | null;
+};
+
+type DigestPayload = {
+    articles: DigestItem[];
+    videos: DigestItem[];
+    others: DigestItem[];
+    total: number;
+};
 
 export default function SmartDigestPage() {
     const t = useTranslations("Digest");
     const tCommon = useTranslations("Common");
-    const [digest, setDigest] = useState<any>(null);
+    const [digest, setDigest] = useState<DigestPayload | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -37,7 +59,7 @@ export default function SmartDigestPage() {
                 });
                 alert(t("noteSaved"));
                 // Optionally reload or update state here
-            } catch(e) {
+            } catch {
                 alert(tCommon("error"));
             }
         }
@@ -57,26 +79,28 @@ export default function SmartDigestPage() {
         );
     }
 
-    const renderSection = (title: string, items: any[]) => {
+    const renderSection = (title: string, items: DigestItem[]) => {
         if (!items || items.length === 0) return null;
         return (
             <div className="mb-10">
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 border-b border-[var(--colors-border)] pb-2">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2 border-b border-(--colors-border) pb-2">
                     {title === 'videos' ? t("sections.videos") : title === 'articles' ? t("sections.articles") : t("sections.others")}
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {items.map(item => (
                         <Card key={item.id} className="p-4 hover:border-accent transition-colors">
                             {item.image && (
-                                <div className="w-full h-32 rounded-lg bg-[var(--colors-bg-alt)] mb-3 overflow-hidden">
-                                   <img src={item.image} alt="" className="w-full h-full object-cover" />
+                                          <div className="relative w-full h-32 rounded-lg bg-(--colors-bg-alt) mb-3 overflow-hidden">
+                                   <Image src={item.image} alt={item.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" unoptimized />
                                 </div>
                             )}
                             <div className="flex items-center gap-2 mb-2 text-xs opacity-70">
-                                {item.feed?.favicon && <img src={item.feed.favicon} className="w-4 h-4 rounded" />}
+                                {item.feed?.favicon && (
+                                    <Image src={item.feed.favicon} className="w-4 h-4 rounded" alt={item.feed?.title || "Feed icon"} width={16} height={16} unoptimized />
+                                )}
                                 <span>{item.feed?.title || t("unknownSource")}</span>
                             </div>
-                            <h3 className="font-semibold text-[var(--colors-text)] mb-2 line-clamp-2 leading-tight">
+                            <h3 className="font-semibold text-(--colors-text) mb-2 line-clamp-2 leading-tight">
                                 {item.title}
                             </h3>
                             {item.content && (
@@ -84,14 +108,14 @@ export default function SmartDigestPage() {
                                     {item.content.replace(/<[^>]+>/g, '')}
                                 </p>
                             )}
-                            <div className="mt-4 pt-4 border-t border-[var(--colors-border)] flex justify-between items-center">
+                                     <div className="mt-4 pt-4 border-t border-(--colors-border) flex justify-between items-center">
                                 <span className="text-xs opacity-50 flex items-center gap-1">
                                     <CalendarDays size={12} /> {new Date(item.publishedAt).toLocaleDateString()}
                                 </span>
                                 <div className="flex gap-3">
                                    <button 
                                       onClick={() => handleAddNote(item.id, item.note)}
-                                      className="text-[var(--colors-text)] opacity-60 hover:opacity-100 flex items-center gap-1 text-sm font-medium bg-transparent border-none cursor-pointer"
+                                                  className="text-(--colors-text) opacity-60 hover:opacity-100 flex items-center gap-1 text-sm font-medium bg-transparent border-none cursor-pointer"
                                    >
                                       <MessageSquarePlus size={14} /> {t("note")}
                                    </button>

@@ -1,7 +1,6 @@
 "use client";
 
-import { Card, EmptyState, Button } from "@/components/ui";
-import { CopyPlus } from "lucide-react";
+import { Card, Button } from "@/components/ui";
 import { ActivityTimeline } from "@/components/overview/ActivityTimeline";
 import { useTranslations } from "next-intl";
 

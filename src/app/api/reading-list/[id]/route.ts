@@ -1,5 +1,15 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
+
+type UpdateReadingListBody = {
+  title?: string;
+  url?: string | null;
+  note?: string | null;
+  isRead?: boolean;
+  isSavedForLater?: boolean;
+  tagIds?: string[];
+};
 
 export async function PATCH(
   req: Request,
@@ -7,10 +17,10 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const body = await req.json();
+    const body = (await req.json()) as UpdateReadingListBody;
     const { title, url, note, isRead, isSavedForLater, tagIds } = body;
 
-    const dataToUpdate: any = { 
+    const dataToUpdate: Prisma.FeedItemUpdateInput = {
       title, 
       url, 
       note, 

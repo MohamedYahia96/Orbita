@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { EmptyState, Button, Card, Input, Modal, useToast } from "@/components/ui";
 import { Bookmark, Plus, Edit2, Trash2, Loader2, ExternalLink, Tag as TagIcon, CheckCircle } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -34,11 +34,7 @@ export function ReadingListManager() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [itemsRes, tagsRes] = await Promise.all([
@@ -58,7 +54,11 @@ export function ReadingListManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast, tCommon]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleOpenModal = (item?: ReadingListItem) => {
     if (item) {
@@ -130,7 +130,7 @@ export function ReadingListManager() {
         body: JSON.stringify({ isRead: !item.isRead }),
       });
       fetchData();
-    } catch (err) {
+    } catch {
       toast(tCommon("error"), "error");
     }
   };
@@ -141,7 +141,7 @@ export function ReadingListManager() {
       await fetch(`/api/reading-list/${id}`, { method: "DELETE" });
       toast(t("successRemove"), "success");
       fetchData();
-    } catch (error) {
+    } catch {
       toast(tCommon("error"), "error");
     }
   };

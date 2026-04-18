@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Bell, Check, ExternalLink, BellRing } from "lucide-react";
 import { Badge, Button } from "@/components/ui";
 import { useTranslations } from "next-intl";
 
-const applicationServerKey = "BPjzDI7qAH68M-u5OePn2AnmTeWOmfHu1bGpqrKRRYQ7lq0uZOQt9CF6DS1nx5churhUDK9hbUP_NJ0lMateZ2A";
+const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 
 function urlB64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -16,9 +17,19 @@ function urlB64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+type NotificationItem = {
+  id: string;
+  title: string;
+  url: string | null;
+  feed?: {
+    title?: string | null;
+    favicon?: string | null;
+  } | null;
+};
+
 export function NotificationBell() {
   const t = useTranslations("Notifications");
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -48,8 +59,8 @@ export function NotificationBell() {
         setNotifications(data.notifications || []);
         setUnreadCount(data.count || 0);
       }
-    } catch (e) {
-      console.error("Failed to fetch notifications", e);
+    } catch (error) {
+      console.error("Failed to fetch notifications", error);
     }
   };
 
@@ -62,7 +73,7 @@ export function NotificationBell() {
       });
       setNotifications(prev => prev.filter(n => n.id !== id));
       setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (e) {
+    } catch {
       console.error("Failed to mark as read");
     }
   };
@@ -72,6 +83,12 @@ export function NotificationBell() {
       alert(t("pushNotSupported"));
       return;
     }
+
+    if (!applicationServerKey) {
+      alert("Push notifications are not configured on this deployment.");
+      return;
+    }
+
     try {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') return;
@@ -82,14 +99,21 @@ export function NotificationBell() {
         applicationServerKey: urlB64ToUint8Array(applicationServerKey)
       });
 
-      await fetch('/api/notifications/push/subscribe', {
+      const response = await fetch('/api/notifications/push/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(subscription)
       });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.error || 'Failed to subscribe for push notifications');
+      }
+
       setIsPushEnabled(true);
     } catch (e) {
       console.error('Failed to subscribe: ', e);
+      alert("Push subscription failed. Please check your browser permissions and server configuration.");
     }
   };
 
@@ -146,7 +170,7 @@ export function NotificationBell() {
                         gap: "12px"
                     }}>
                         {notif.feed?.favicon ? (
-                           <img src={notif.feed.favicon} alt="" width={24} height={24} style={{ borderRadius: "4px" }} />
+                          <Image src={notif.feed.favicon} alt={notif.feed?.title || "Feed icon"} width={24} height={24} style={{ borderRadius: "4px" }} unoptimized />
                         ) : (
                            <div style={{ width: 24, height: 24, borderRadius: "4px", backgroundColor: "var(--accent-color)" }} />
                         )}
