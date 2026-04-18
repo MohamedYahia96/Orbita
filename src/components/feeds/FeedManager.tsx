@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { EmptyState, Button, Card, Input, Modal, useToast } from "@/components/ui";
 import { Rss, Plus, Edit2, Trash2, Loader2, Link as LinkIcon, Video, Code, Pin, RefreshCw } from "lucide-react";
@@ -54,6 +54,7 @@ export function FeedManager() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const submitInFlightRef = useRef(false);
   const { toast } = useToast();
 
   const getErrorMessage = (error: unknown, fallback: string) =>
@@ -113,8 +114,9 @@ export function FeedManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || submitInFlightRef.current) return;
 
+    submitInFlightRef.current = true;
     setIsSubmitting(true);
     try {
       const isEdit = !!editingFeed;
@@ -147,6 +149,7 @@ export function FeedManager() {
       toast(getErrorMessage(error, tCommon("error")), "error");
     } finally {
       setIsSubmitting(false);
+      submitInFlightRef.current = false;
     }
   };
 

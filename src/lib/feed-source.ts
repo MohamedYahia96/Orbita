@@ -14,6 +14,8 @@ type FeedNormalization = {
   error?: string;
 };
 
+const YOUTUBE_CHANNEL_ID_REGEX = /UC[a-zA-Z0-9_-]{22}/;
+
 function parseUrl(value: string | null | undefined) {
   if (!value) return null;
   try {
@@ -91,6 +93,77 @@ function deriveGithubAtomFromUrl(url: URL) {
   if (!owner || !repo) return null;
 
   return `https://github.com/${owner}/${repo}/releases.atom`;
+}
+
+function toYoutubeChannelRssUrl(channelId: string) {
+  return `https://www.youtube.com/feeds/videos.xml?channel_id=${encodeURIComponent(channelId)}`;
+}
+
+function extractYoutubeChannelId(content: string) {
+  const channelIdMatch = content.match(YOUTUBE_CHANNEL_ID_REGEX);
+  if (!channelIdMatch || !channelIdMatch[0]) return null;
+
+  return channelIdMatch[0];
+}
+
+/**
+ * Resolve YouTube @handle URLs to a channel RSS URL when possible.
+ * This is used as a fallback before validation, so manual rssUrl is still supported.
+ */
+export async function resolveYoutubeHandleRssUrl(rawUrl: string): Promise<string | null> {
+  const parsedUrl = parseUrl(rawUrl);
+  if (!parsedUrl) return null;
+
+  const hostname = parsedUrl.hostname.toLowerCase();
+  const pathname = parsedUrl.pathname.replace(/\/+$/, "");
+
+  // This resolver is intended for handle URLs only.
+  if (!hostname.includes("youtube.com") || !pathname.startsWith("/@")) {
+    return null;
+  }
+
+  try {
+    const pageResponse = await fetch(parsedUrl.toString(), {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; OrbitaBot/1.0)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+      cache: "no-store",
+      redirect: "follow",
+    });
+
+    if (pageResponse.ok) {
+      const html = await pageResponse.text();
+      const channelId = extractYoutubeChannelId(html);
+      if (channelId) {
+        return toYoutubeChannelRssUrl(channelId);
+      }
+    }
+  } catch {
+    // Fallback below (oEmbed)
+  }
+
+  try {
+    const oembedUrl = `https://www.youtube.com/oembed?url=${encodeURIComponent(
+      parsedUrl.toString()
+    )}&format=json`;
+
+    const oembedResponse = await fetch(oembedUrl, {
+      cache: "no-store",
+    });
+
+    if (!oembedResponse.ok) return null;
+
+    const oembed = (await oembedResponse.json()) as { author_url?: string };
+    if (!oembed.author_url) return null;
+
+    const channelId = extractYoutubeChannelId(oembed.author_url);
+    if (!channelId) return null;
+
+    return toYoutubeChannelRssUrl(channelId);
+  } catch {
+    return null;
+  }
 }
 
 export function normalizeFeedInput(input: FeedInput): FeedNormalization {

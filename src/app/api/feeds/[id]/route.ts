@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { normalizeFeedInput } from "@/lib/feed-source";
+import { normalizeFeedInput, resolveYoutubeHandleRssUrl } from "@/lib/feed-source";
 
 export async function PATCH(
   req: Request,
@@ -18,12 +18,19 @@ export async function PATCH(
 
     const nextUrl =
       url !== undefined ? (typeof url === "string" && url.trim() ? url.trim() : null) : existingFeed.url;
-    const nextRssUrl =
+    let nextRssUrl =
       rssUrl !== undefined
         ? (typeof rssUrl === "string" && rssUrl.trim() ? rssUrl.trim() : null)
         : existingFeed.rssUrl;
     const nextFavicon =
       favicon !== undefined ? (typeof favicon === "string" && favicon.trim() ? favicon.trim() : null) : existingFeed.favicon;
+
+    if (!nextRssUrl && nextUrl) {
+      const resolvedYoutubeRssUrl = await resolveYoutubeHandleRssUrl(nextUrl);
+      if (resolvedYoutubeRssUrl) {
+        nextRssUrl = resolvedYoutubeRssUrl;
+      }
+    }
 
     const normalization = normalizeFeedInput({
       type: type !== undefined ? type : existingFeed.type,

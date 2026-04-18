@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { normalizeFeedInput } from "@/lib/feed-source";
+import { normalizeFeedInput, resolveYoutubeHandleRssUrl } from "@/lib/feed-source";
 import { getOrCreateDemoUser } from "@/lib/current-user";
 
 async function getUserId() {
@@ -48,7 +48,14 @@ export async function POST(req: Request) {
 
     const normalizedUrl = typeof url === "string" && url.trim() ? url.trim() : null;
     const normalizedDescription = typeof description === "string" && description.trim() ? description.trim() : null;
-    const normalizedRssUrl = typeof rssUrl === "string" && rssUrl.trim() ? rssUrl.trim() : null;
+    let normalizedRssUrl = typeof rssUrl === "string" && rssUrl.trim() ? rssUrl.trim() : null;
+
+    if (!normalizedRssUrl && normalizedUrl) {
+      const resolvedYoutubeRssUrl = await resolveYoutubeHandleRssUrl(normalizedUrl);
+      if (resolvedYoutubeRssUrl) {
+        normalizedRssUrl = resolvedYoutubeRssUrl;
+      }
+    }
 
     const normalization = normalizeFeedInput({
       type,
@@ -60,6 +67,32 @@ export async function POST(req: Request) {
 
     if (normalization.error) {
       return NextResponse.json({ error: normalization.error }, { status: 400 });
+    }
+
+    const duplicateKeys = [
+      ...(normalizedUrl ? [{ url: normalizedUrl }] : []),
+      ...(normalization.rssUrl ? [{ rssUrl: normalization.rssUrl }] : []),
+    ];
+
+    if (duplicateKeys.length > 0) {
+      const existingFeed = await prisma.feed.findFirst({
+        where: {
+          userId,
+          workspaceId: workspaceId || null,
+          type: normalization.type,
+          OR: duplicateKeys,
+        },
+      });
+
+      if (existingFeed) {
+        return NextResponse.json(
+          {
+            error: "This source already exists in the selected workspace.",
+            existingFeedId: existingFeed.id,
+          },
+          { status: 409 }
+        );
+      }
     }
 
     const feed = await prisma.feed.create({
