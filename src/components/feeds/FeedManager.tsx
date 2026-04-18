@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { EmptyState, Button, Card, Input, Modal, useToast } from "@/components/ui";
-import { Rss, Plus, Edit2, Trash2, Loader2, Link as LinkIcon, Video, Code, Pin, RefreshCw } from "lucide-react";
+import { Rss, Plus, Edit2, Trash2, Loader2, Link as LinkIcon, Video, Code, Pin, RefreshCw, Send } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 type Feed = {
@@ -31,10 +31,11 @@ type FeedPayload = {
 };
 
 const PLATFORMS = [
-  { id: "custom_link", label: "Custom Link", icon: <LinkIcon size={16} /> },
-  { id: "rss", label: "RSS Feed", icon: <Rss size={16} /> },
-  { id: "youtube", label: "YouTube", icon: <Video size={16} /> },
-  { id: "github", label: "GitHub", icon: <Code size={16} /> },
+  { id: "custom_link", labelKey: "platformCustomLink", icon: <LinkIcon size={16} /> },
+  { id: "rss", labelKey: "platformRss", icon: <Rss size={16} /> },
+  { id: "youtube", labelKey: "platformYoutube", icon: <Video size={16} /> },
+  { id: "github", labelKey: "platformGithub", icon: <Code size={16} /> },
+  { id: "telegram", labelKey: "platformTelegram", icon: <Send size={16} /> },
 ];
 
 export function FeedManager() {
@@ -51,14 +52,31 @@ export function FeedManager() {
   const [url, setUrl] = useState("");
   const [type, setType] = useState("custom_link");
   const [workspaceId, setWorkspaceId] = useState("");
+  const [telegramBotToken, setTelegramBotToken] = useState("");
+  const [telegramChannelUsername, setTelegramChannelUsername] = useState("");
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const submitInFlightRef = useRef(false);
   const { toast } = useToast();
 
+  const isTelegramType = type === "telegram";
+
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;
+
+  const extractTelegramUsername = (rawUrl: string | null) => {
+    if (!rawUrl) return "";
+
+    try {
+      const parsed = new URL(rawUrl);
+      if (!parsed.hostname.toLowerCase().includes("t.me")) return "";
+      const segment = parsed.pathname.split("/").filter(Boolean)[0] || "";
+      return segment.replace(/^@+/, "");
+    } catch {
+      return "";
+    }
+  };
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -93,12 +111,16 @@ export function FeedManager() {
       setUrl(feed.url || "");
       setType(feed.type);
       setWorkspaceId(feed.workspaceId || "");
+      setTelegramBotToken("");
+      setTelegramChannelUsername(feed.type === "telegram" ? extractTelegramUsername(feed.url) : "");
     } else {
       setEditingFeed(null);
       setTitle("");
       setUrl("");
       setType("custom_link");
       setWorkspaceId("");
+      setTelegramBotToken("");
+      setTelegramChannelUsername("");
     }
     setIsModalOpen(true);
   };
@@ -109,6 +131,8 @@ export function FeedManager() {
     setUrl("");
     setType("custom_link");
     setWorkspaceId("");
+    setTelegramBotToken("");
+    setTelegramChannelUsername("");
     setEditingFeed(null);
   };
 
@@ -120,16 +144,38 @@ export function FeedManager() {
     setIsSubmitting(true);
     try {
       const isEdit = !!editingFeed;
-      const apiUrl = isEdit ? `/api/feeds/${editingFeed.id}` : "/api/feeds";
+      const isTelegramFeed = type === "telegram";
+      const apiUrl = isTelegramFeed
+        ? isEdit
+          ? `/api/telegram/channels/${editingFeed.id}`
+          : "/api/telegram/channels"
+        : isEdit
+          ? `/api/feeds/${editingFeed.id}`
+          : "/api/feeds";
       const method = isEdit ? "PATCH" : "POST";
 
-      const payload: FeedPayload = {
-        title, 
-        type,
-        workspaceId: workspaceId || null,
-        url: url || null,
-        platform: type !== "rss" && type !== "custom_link" ? type : null
-      };
+      if (isTelegramFeed && !telegramChannelUsername.trim()) {
+        throw new Error(t("telegramUsernameRequired"));
+      }
+
+      if (isTelegramFeed && !isEdit && !telegramBotToken.trim()) {
+        throw new Error(t("telegramTokenRequired"));
+      }
+
+      const payload: FeedPayload | Record<string, unknown> = isTelegramFeed
+        ? {
+            title: title.trim(),
+            workspaceId: workspaceId || null,
+            channelUsername: telegramChannelUsername.trim(),
+            ...(telegramBotToken.trim() ? { botToken: telegramBotToken.trim() } : {}),
+          }
+        : {
+            title,
+            type,
+            workspaceId: workspaceId || null,
+            url: url || null,
+            platform: type !== "rss" && type !== "custom_link" ? type : null,
+          };
 
       const res = await fetch(apiUrl, {
         method,
@@ -153,11 +199,16 @@ export function FeedManager() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (feed: Feed) => {
     if (!confirm(t("confirmDelete"))) return;
 
     try {
-      const res = await fetch(`/api/feeds/${id}`, { method: "DELETE" });
+      const endpoint =
+        feed.type === "telegram"
+          ? `/api/telegram/channels/${feed.id}`
+          : `/api/feeds/${feed.id}`;
+
+      const res = await fetch(endpoint, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete feed");
       
       toast(t("successDelete"), "success");
@@ -170,7 +221,12 @@ export function FeedManager() {
 
   const togglePin = async (feed: Feed) => {
     try {
-      const res = await fetch(`/api/feeds/${feed.id}`, {
+      const endpoint =
+        feed.type === "telegram"
+          ? `/api/telegram/channels/${feed.id}`
+          : `/api/feeds/${feed.id}`;
+
+      const res = await fetch(endpoint, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isPinned: !feed.isPinned }),
@@ -205,6 +261,14 @@ export function FeedManager() {
       return feed.url;
     }
   };
+
+  const isEditingFeed = Boolean(editingFeed);
+  const isTelegramTokenRequired = isTelegramType && !isEditingFeed;
+  const isSubmitDisabled =
+    isSubmitting ||
+    !title.trim() ||
+    (isTelegramType && !telegramChannelUsername.trim()) ||
+    (isTelegramTokenRequired && !telegramBotToken.trim());
 
   if (isLoading) {
     return (
@@ -264,7 +328,7 @@ export function FeedManager() {
                   <button 
                     onClick={() => togglePin(feed)}
                     className={`p-1 border-none bg-transparent hover:bg-(--colors-bg-alt) rounded transition-colors cursor-pointer ${feed.isPinned ? "text-[#f59e0b] opacity-100" : "opacity-40 hover:opacity-100"}`}
-                    title={feed.isPinned ? "Unpin" : "Pin to sidebar"}
+                    title={feed.isPinned ? t("unpinAction") : t("pinAction")}
                   >
                     <Pin size={16} fill={feed.isPinned ? "currentColor" : "none"} />
                   </button>
@@ -275,7 +339,7 @@ export function FeedManager() {
                     <Edit2 size={16} />
                   </button>
                   <button 
-                    onClick={() => handleDelete(feed.id)}
+                    onClick={() => handleDelete(feed)}
                     className="p-1 border-none bg-transparent hover:bg-(--colors-danger) hover:text-white rounded transition-colors opacity-40 hover:opacity-100 cursor-pointer"
                   >
                     <Trash2 size={16} />
@@ -300,20 +364,26 @@ export function FeedManager() {
           <div>
             <label className="block text-sm font-medium mb-1">{t("type")}</label>
             <div className="grid grid-cols-2 gap-2">
-              {PLATFORMS.map(p => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setType(p.id)}
-                  className={`flex items-center gap-2 p-2 rounded-md border text-sm transition-colors cursor-pointer
-                    ${type === p.id 
-                      ? "border-accent bg-accent/10 text-accent font-medium" 
-                      : "border-(--colors-border) bg-transparent hover:bg-(--colors-bg-alt)"
-                    }`}
-                >
-                  {p.icon} {p.label}
-                </button>
-              ))}
+              {PLATFORMS.map((p) => {
+                const isTypeLocked = isEditingFeed && editingFeed?.type !== p.id;
+
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setType(p.id)}
+                    disabled={isTypeLocked}
+                    className={`flex items-center gap-2 p-2 rounded-md border text-sm transition-colors
+                      ${isTypeLocked ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+                      ${type === p.id
+                        ? "border-accent bg-accent/10 text-accent font-medium"
+                        : "border-(--colors-border) bg-transparent hover:bg-(--colors-bg-alt)"
+                      }`}
+                  >
+                    {p.icon} {t(p.labelKey)}
+                  </button>
+                );
+              })}
             </div>
           </div>
           
@@ -322,21 +392,54 @@ export function FeedManager() {
             <Input 
               value={title} 
               onChange={(e) => setTitle(e.target.value)} 
-              placeholder="e.g. Next.js Blog"
+              placeholder={t("feedTitlePlaceholder")}
               className="w-full"
             />
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">{t("url")}</label>
-            <Input 
-              value={url} 
-              onChange={(e) => setUrl(e.target.value)} 
-              placeholder="https://..."
-              type="url"
-              className="w-full"
-            />
-          </div>
+
+          {isTelegramType ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {t("telegramChannelUsername")} <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={telegramChannelUsername}
+                  onChange={(e) => setTelegramChannelUsername(e.target.value.replace(/^@+/, ""))}
+                  placeholder={t("telegramUsernamePlaceholder")}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {t("telegramBotToken")}
+                  {isTelegramTokenRequired ? <span className="text-red-500"> *</span> : null}
+                </label>
+                <Input
+                  value={telegramBotToken}
+                  onChange={(e) => setTelegramBotToken(e.target.value)}
+                  placeholder={t("telegramTokenPlaceholder")}
+                  type="password"
+                  className="w-full"
+                />
+                {!isTelegramTokenRequired ? (
+                  <p className="text-xs opacity-70 mt-1">{t("telegramTokenOptionalOnEdit")}</p>
+                ) : null}
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium mb-1">{t("url")}</label>
+              <Input
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder={t("urlPlaceholder")}
+                type="url"
+                className="w-full"
+              />
+            </div>
+          )}
  
           <div>
             <label className="block text-sm font-medium mb-1">{t("workspace")}</label>
@@ -354,7 +457,7 @@ export function FeedManager() {
 
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="ghost" type="button" onClick={handleCloseModal}>{t("cancel")}</Button>
-            <Button type="submit" disabled={isSubmitting || !title.trim()}>
+            <Button type="submit" disabled={isSubmitDisabled}>
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("save")}
             </Button>
           </div>

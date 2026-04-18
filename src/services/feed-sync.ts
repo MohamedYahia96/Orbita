@@ -1,5 +1,9 @@
 import { fetchRssFeed } from './fetchers/rss';
 import { scrapeLinkData } from './fetchers/scraper';
+import {
+  TELEGRAM_DEFAULT_FAVICON,
+  fetchTelegramChannelUpdates,
+} from './fetchers/telegram';
 import prisma from '@/lib/prisma';
 import type { Feed, Prisma } from '@prisma/client';
 
@@ -46,6 +50,8 @@ type ParsedSyncItem = {
   image: string | null;
   guid: string;
   pubDate?: string;
+  mediaType?: 'article' | 'video' | 'image';
+  extraData?: Record<string, unknown>;
 };
 
 export async function syncSingleFeed(feed: Feed) {
@@ -94,6 +100,46 @@ export async function syncSingleFeed(feed: Feed) {
             feedUpdates.favicon = scrapedData.favicon;
           }
         }
+      }
+    } else if (feed.type === 'telegram') {
+      const telegramConfig = await prisma.telegramBot.findUnique({
+        where: { feedId: feed.id },
+      });
+
+      if (!telegramConfig) {
+        throw new Error('Telegram feed is missing bot configuration');
+      }
+
+      const parsedData = await fetchTelegramChannelUpdates({
+        botToken: telegramConfig.botToken,
+        channelUsername: telegramConfig.channelUsername,
+        lastUpdateId: telegramConfig.lastUpdateId,
+      });
+
+      newItems = parsedData.items.map((item: ParsedSyncItem) => ({
+        feedId: feed.id,
+        title: item.title,
+        url: item.link,
+        content: item.content,
+        image: item.image,
+        mediaType: item.mediaType || 'article',
+        extraData: JSON.stringify({ guid: item.guid, ...(item.extraData || {}) }),
+        publishedAt: item.pubDate ? new Date(item.pubDate) : new Date(),
+      }));
+
+      await prisma.telegramBot.update({
+        where: { id: telegramConfig.id },
+        data: {
+          channelUsername: parsedData.channelUsername,
+          chatId: parsedData.chatId,
+          chatTitle: parsedData.chatTitle,
+          chatType: parsedData.chatType,
+          lastUpdateId: parsedData.lastUpdateId ?? telegramConfig.lastUpdateId,
+        },
+      });
+
+      if (!feed.favicon) {
+        feedUpdates.favicon = TELEGRAM_DEFAULT_FAVICON;
       }
     }
 
