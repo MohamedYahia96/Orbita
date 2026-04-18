@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { EmptyState, Button, Card, Input, Modal, useToast } from "@/components/ui";
-import { Rss, Plus, Edit2, Trash2, Loader2, Link as LinkIcon, Video, Code, Pin, RefreshCw, Send, Mail, Folder } from "lucide-react";
+import { Rss, Plus, Edit2, Trash2, Loader2, Link as LinkIcon, Video, Code, Pin, RefreshCw, Send, Mail, Folder, Globe } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 type Feed = {
@@ -36,6 +36,7 @@ const PLATFORMS = [
   { id: "rss", labelKey: "platformRss", icon: <Rss size={16} /> },
   { id: "youtube", labelKey: "platformYoutube", icon: <Video size={16} /> },
   { id: "github", labelKey: "platformGithub", icon: <Code size={16} /> },
+  { id: "facebook", labelKey: "platformFacebook", icon: <Globe size={16} /> },
   { id: "telegram", labelKey: "platformTelegram", icon: <Send size={16} /> },
   { id: "gmail", labelKey: "platformGmail", icon: <Mail size={16} /> },
   { id: "drive", labelKey: "platformDrive", icon: <Folder size={16} /> },
@@ -75,6 +76,7 @@ export function FeedManager() {
   const isTelegramType = type === "telegram";
   const isGmailType = type === "gmail";
   const isDriveType = type === "drive";
+  const isFacebookType = type === "facebook";
 
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;
@@ -353,6 +355,10 @@ export function FeedManager() {
         throw new Error(t("driveFolderRequired"));
       }
 
+      if (isFacebookType && !url.trim()) {
+        throw new Error(t("facebookUrlRequired"));
+      }
+
       const payload: FeedPayload | Record<string, unknown> = isTelegramFeed
         ? {
             title: title.trim(),
@@ -479,6 +485,7 @@ export function FeedManager() {
   const isGmailConnectionRequired = isGmailType && !isEditingFeed;
   const isDriveConnectionRequired = isDriveType && !isEditingFeed;
   const isDriveFolderRequired = isDriveType && !driveFolderId.trim();
+  const isFacebookUrlRequired = isFacebookType && !url.trim();
   const isSubmitDisabled =
     isSubmitting ||
     !title.trim() ||
@@ -486,7 +493,8 @@ export function FeedManager() {
     (isTelegramTokenRequired && !telegramBotToken.trim()) ||
     (isGmailConnectionRequired && !gmailConnected) ||
     (isDriveConnectionRequired && !driveConnected) ||
-    isDriveFolderRequired;
+    isDriveFolderRequired ||
+    isFacebookUrlRequired;
 
   if (isLoading) {
     return (
@@ -732,11 +740,14 @@ export function FeedManager() {
             </>
           ) : (
             <div>
-              <label className="block text-sm font-medium mb-1">{t("url")}</label>
+              <label className="block text-sm font-medium mb-1">
+                {isFacebookType ? t("facebookPageUrl") : t("url")}
+                {isFacebookType ? <span className="text-red-500"> *</span> : null}
+              </label>
               <Input
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder={t("urlPlaceholder")}
+                placeholder={isFacebookType ? t("facebookUrlPlaceholder") : t("urlPlaceholder")}
                 type="url"
                 className="w-full"
               />

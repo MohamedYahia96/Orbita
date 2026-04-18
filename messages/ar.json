@@ -53,6 +53,7 @@
     "platformRss": "خلاصة RSS",
     "platformYoutube": "يوتيوب",
     "platformGithub": "GitHub",
+    "platformFacebook": "Facebook RSS",
     "platformTelegram": "تيليجرام",
     "platformGmail": "Gmail",
     "platformDrive": "Google Drive",
@@ -88,6 +89,9 @@
     "driveFolderRequired": "معرّف مجلد Drive مطلوب.",
     "driveAuthOpened": "تم فتح تفويض Google Drive في تبويب جديد.",
     "driveAuthFailed": "فشل بدء تفويض Google Drive.",
+    "facebookPageUrl": "رابط صفحة Facebook",
+    "facebookUrlPlaceholder": "https://www.facebook.com/<page>",
+    "facebookUrlRequired": "رابط صفحة Facebook مطلوب.",
     "pinAction": "تثبيت في الشريط الجانبي",
     "unpinAction": "إلغاء التثبيت"
   },

@@ -53,6 +53,7 @@
     "platformRss": "RSS Feed",
     "platformYoutube": "YouTube",
     "platformGithub": "GitHub",
+    "platformFacebook": "Facebook RSS",
     "platformTelegram": "Telegram",
     "platformGmail": "Gmail",
     "platformDrive": "Google Drive",
@@ -88,6 +89,9 @@
     "driveFolderRequired": "Drive folder ID is required.",
     "driveAuthOpened": "Google Drive authorization opened in a new tab.",
     "driveAuthFailed": "Failed to start Google Drive authorization.",
+    "facebookPageUrl": "Facebook Page URL",
+    "facebookUrlPlaceholder": "https://www.facebook.com/<page>",
+    "facebookUrlRequired": "Facebook page URL is required.",
     "pinAction": "Pin to sidebar",
     "unpinAction": "Unpin"
   },

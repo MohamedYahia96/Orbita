@@ -134,7 +134,7 @@ export async function syncSingleFeed(feed: Feed) {
   const feedUpdates: Prisma.FeedUpdateInput = {};
 
   try {
-    if (feed.type === 'rss' || feed.type === 'youtube' || feed.type === 'github') {
+    if (feed.type === 'rss' || feed.type === 'youtube' || feed.type === 'github' || feed.type === 'facebook') {
       const urlToFetch = feed.rssUrl || feed.url;
       if (!urlToFetch) throw new Error('No URL to fetch');
       

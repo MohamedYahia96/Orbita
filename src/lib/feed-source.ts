@@ -15,6 +15,7 @@ type FeedNormalization = {
 };
 
 const YOUTUBE_CHANNEL_ID_REGEX = /UC[a-zA-Z0-9_-]{22}/;
+const FACEBOOK_RSS_DEFAULT_BRIDGE_BASE_URL = "https://openrss.org";
 
 function parseUrl(value: string | null | undefined) {
   if (!value) return null;
@@ -93,6 +94,31 @@ function deriveGithubAtomFromUrl(url: URL) {
   if (!owner || !repo) return null;
 
   return `https://github.com/${owner}/${repo}/releases.atom`;
+}
+
+function getFacebookRssBridgeBaseUrl() {
+  const raw = process.env.FACEBOOK_RSS_BRIDGE_BASE_URL;
+  if (!raw || !raw.trim()) {
+    return FACEBOOK_RSS_DEFAULT_BRIDGE_BASE_URL;
+  }
+
+  return raw.trim().replace(/\/+$/, "");
+}
+
+function deriveFacebookRssFromUrl(url: URL) {
+  const hostname = url.hostname.toLowerCase();
+  const isFacebookHost = hostname === "facebook.com" || hostname.endsWith(".facebook.com");
+  const isFbWatchHost = hostname === "fb.watch" || hostname.endsWith(".fb.watch");
+
+  if (!isFacebookHost && !isFbWatchHost) {
+    return null;
+  }
+
+  const normalizedHost = isFbWatchHost ? "fb.watch" : "facebook.com";
+  const normalizedPath = url.pathname && url.pathname !== "/" ? url.pathname.replace(/\/+$/, "") : "";
+  const search = url.search || "";
+
+  return `${getFacebookRssBridgeBaseUrl()}/${normalizedHost}${normalizedPath}${search}`;
 }
 
 function toYoutubeChannelRssUrl(channelId: string) {
@@ -199,6 +225,8 @@ export function normalizeFeedInput(input: FeedInput): FeedNormalization {
     platform = "youtube";
   } else if (type === "github") {
     platform = "github";
+  } else if (type === "facebook") {
+    platform = "facebook";
   } else if (type === "telegram") {
     platform = "telegram";
   } else if (type === "gmail") {
@@ -249,7 +277,30 @@ export function normalizeFeedInput(input: FeedInput): FeedNormalization {
     }
   }
 
-  if ((type === "rss" || type === "youtube" || type === "github") && !rssUrl) {
+  if (type === "facebook" && !rssUrl) {
+    if (!parsedUrl) {
+      return {
+        type,
+        platform,
+        favicon,
+        rssUrl,
+        error: "Facebook RSS requires a public Facebook page URL.",
+      };
+    }
+
+    rssUrl = deriveFacebookRssFromUrl(parsedUrl);
+    if (!rssUrl) {
+      return {
+        type,
+        platform,
+        favicon,
+        rssUrl,
+        error: "Unsupported Facebook URL. Use a public facebook.com page URL.",
+      };
+    }
+  }
+
+  if ((type === "rss" || type === "youtube" || type === "github" || type === "facebook") && !rssUrl) {
     return { type, platform, favicon, rssUrl, error: "This feed type requires a valid rssUrl." };
   }
 
