@@ -1,11 +1,14 @@
 "use client";
 
 import { Card, Button } from "@/components/ui";
-import { ActivityTimeline } from "@/components/overview/ActivityTimeline";
+import { OnboardingWizard } from "@/components/overview/OnboardingWizard";
+import { WidgetGrid } from "@/components/overview/WidgetGrid";
+import { useRouter } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 
 export default function OverviewPage() {
   const t = useTranslations("Overview");
+  const router = useRouter();
   
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
@@ -25,21 +28,39 @@ export default function OverviewPage() {
         </Card>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "var(--space-6)" }}>
-        {/* Main Feed Activity Timeline */}
-        <section>
-           <ActivityTimeline />
-        </section>
+      <section>
+        <h2 className="text-xl font-semibold mb-4">{t("quickActions")}</h2>
+        <Card
+          padding="md"
+          style={{
+            display: "flex",
+            gap: "var(--space-3)",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "flex", gap: "var(--space-3)", flexWrap: "wrap" }}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => router.push("/workspaces")}
+            >
+              {t("createWorkspace")}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => router.push("/feeds")}
+            >
+              {t("manageSources")}
+            </Button>
+          </div>
+          <OnboardingWizard />
+        </Card>
+      </section>
 
-        {/* Sidebar / Quick Actions */}
-        <section>
-          <h2 className="text-xl font-semibold mb-4">{t("quickActions")}</h2>
-          <Card padding="md" style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-             <Button fullWidth variant="secondary">{t("createWorkspace")}</Button>
-             <Button fullWidth variant="ghost">{t("manageSources")}</Button>
-          </Card>
-        </section>
-      </div>
+      <WidgetGrid />
     </div>
   );
 }
