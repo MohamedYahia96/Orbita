@@ -140,8 +140,8 @@ export function NotificationBell() {
           top: "120%",
           right: 0,
           width: "320px",
-          backgroundColor: "var(--bg-card)",
-          border: "1px solid var(--border-color)",
+          backgroundColor: "var(--color-bg-elevated)",
+          border: "1px solid var(--color-border)",
           borderRadius: "var(--radius-md)",
           boxShadow: "var(--shadow-lg)",
           zIndex: 50,
@@ -149,7 +149,7 @@ export function NotificationBell() {
           flexDirection: "column",
           maxHeight: "400px"
         }}>
-          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border-color)", fontWeight: "600", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--color-border)", fontWeight: "600", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span>{t("title")}</span>
             {!isPushEnabled && (
                <Button variant="ghost" size="sm" onClick={subscribeToPush} icon={<BellRing size={14} />} title={t("enablePush")} />
@@ -158,42 +158,45 @@ export function NotificationBell() {
           
           <div style={{ overflowY: "auto", flex: 1, padding: "8px 0" }}>
             {notifications.length === 0 ? (
-              <div style={{ padding: "16px", textAlign: "center", color: "var(--text-muted)" }}>
+              <div style={{ padding: "16px", textAlign: "center", color: "var(--color-text-secondary)" }}>
                  {t("noNewNotifications")}
               </div>
             ) : (
-                notifications.map(notif => (
-                    <div key={notif.id} style={{ 
-                        display: "flex", 
-                        padding: "12px 16px", 
-                        borderBottom: "1px solid var(--border-color)",
-                        gap: "12px"
-                    }}>
-                        {notif.feed?.favicon ? (
-                          <Image src={notif.feed.favicon} alt={notif.feed?.title || "Feed icon"} width={24} height={24} style={{ borderRadius: "4px" }} unoptimized />
-                        ) : (
-                           <div style={{ width: 24, height: 24, borderRadius: "4px", backgroundColor: "var(--accent-color)" }} />
-                        )}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ margin: "0 0 4px 0", fontSize: "0.875rem", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                {notif.title}
-                            </p>
-                            <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                                {notif.feed?.title}
-                            </p>
-                        </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                            <button onClick={() => markAsRead(notif.id)} title={t("markAsRead")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}>
-                                <Check size={14} />
-                            </button>
-                            {notif.url && (
-                               <a href={notif.url} target="_blank" rel="noreferrer" style={{ color: "var(--accent-color)" }}>
-                                  <ExternalLink size={14} />
-                               </a>
-                            )}
-                        </div>
-                    </div>
-                ))
+              notifications.map(notif => (
+                <div
+                  key={notif.id}
+                  style={{
+                    display: "flex",
+                    padding: "12px 16px",
+                    borderBottom: "1px solid var(--color-border)",
+                    gap: "12px",
+                  }}
+                >
+                  {notif.feed?.favicon ? (
+                    <Image src={notif.feed.favicon} alt={notif.feed?.title || "Feed icon"} width={24} height={24} style={{ borderRadius: "4px" }} unoptimized />
+                  ) : (
+                    <div style={{ width: 24, height: 24, borderRadius: "4px", backgroundColor: "var(--color-accent)" }} />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: "0 0 4px 0", fontSize: "0.875rem", fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {notif.title}
+                    </p>
+                    <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text-secondary)" }}>
+                      {notif.feed?.title}
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <button onClick={() => markAsRead(notif.id)} title={t("markAsRead")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)" }}>
+                      <Check size={14} />
+                    </button>
+                    {notif.url && (
+                      <a href={notif.url} target="_blank" rel="noreferrer" style={{ color: "var(--color-accent)" }}>
+                        <ExternalLink size={14} />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>

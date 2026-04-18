@@ -102,11 +102,11 @@ export default function CommandPalette() {
   return (
     <Modal open={isOpen} onClose={() => setIsOpen(false)} title={t("title")}>
       <div className="flex flex-col gap-2 p-2">
-        <div className="flex items-center gap-2 px-3 pb-2 border-b border-(--colors-border) mb-2">
+        <div className="flex items-center gap-2 px-3 pb-2 border-b border-(--color-border) mb-2">
           <Search size={18} className="opacity-50" />
           <input
             autoFocus
-            className="w-full bg-transparent border-none outline-none text-(--colors-text) placeholder:opacity-50 text-base"
+            className="w-full bg-transparent border-none outline-none text-(--color-text-primary) placeholder:opacity-50 text-base"
             placeholder={t("placeholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -121,7 +121,7 @@ export default function CommandPalette() {
                 <button
                   key={cmd.id}
                   onClick={() => handleSelect(cmd)}
-                  className="flex items-center gap-3 px-3 py-2 w-full text-left hover:bg-(--colors-bg-alt) rounded-lg transition-colors border-none bg-transparent cursor-pointer text-(--colors-text)"
+                  className="flex items-center gap-3 px-3 py-2 w-full text-left hover:bg-(--color-bg-hover) rounded-lg transition-colors border-none bg-transparent cursor-pointer text-(--color-text-primary)"
                 >
                   <div className="opacity-70">{cmd.icon}</div>
                   <span className="font-medium text-sm">{cmd.name}</span>
@@ -134,7 +134,7 @@ export default function CommandPalette() {
 
           {results.length > 0 && !isSearching && (
             <div>
-               <div className="text-xs opacity-50 px-3 pb-1 pt-2 border-t border-(--colors-border) font-semibold uppercase">{t("content")}</div>
+               <div className="text-xs opacity-50 px-3 pb-1 pt-2 border-t border-(--color-border) font-semibold uppercase">{t("content")}</div>
                {results.map(item => (
                   <button
                     key={item.id}
@@ -142,7 +142,7 @@ export default function CommandPalette() {
                         setIsOpen(false);
                         window.open(item.url || '', '_blank');
                     }}
-                    className="flex items-center gap-3 px-3 py-2 w-full text-left hover:bg-(--colors-bg-alt) rounded-lg transition-colors border-none bg-transparent cursor-pointer text-(--colors-text)"
+                    className="flex items-center gap-3 px-3 py-2 w-full text-left hover:bg-(--color-bg-hover) rounded-lg transition-colors border-none bg-transparent cursor-pointer text-(--color-text-primary)"
                   >
                     <div className="opacity-70 w-5 h-5 flex items-center justify-center shrink-0">
                        {item.feed?.favicon ? <Image src={item.feed.favicon} className="w-4 h-4 rounded" alt="Feed icon" width={16} height={16} unoptimized /> : <ExternalLink size={14} />}
@@ -160,13 +160,13 @@ export default function CommandPalette() {
           )}
         </div>
         
-        <div className="mt-2 pt-2 border-t border-(--colors-border) text-xs opacity-50 text-center flex flex-wrap justify-center gap-4">
-          <span><kbd className="bg-(--colors-bg-alt) px-1 rounded">f</kbd> {tSidebar("feeds")}</span>
-          <span><kbd className="bg-(--colors-bg-alt) px-1 rounded">w</kbd> {tSidebar("workspaces")}</span>
-          <span><kbd className="bg-(--colors-bg-alt) px-1 rounded">r</kbd> {tSidebar("readingList")}</span>
-          <span><kbd className="bg-(--colors-bg-alt) px-1 rounded">t</kbd> {tSidebar("tags")}</span>
-          <span><kbd className="bg-(--colors-bg-alt) px-1 rounded">h</kbd> {tSidebar("overview")}</span>
-          <span><kbd className="bg-(--colors-bg-alt) px-1 rounded">s</kbd> {tSidebar("settings")}</span>
+        <div className="mt-2 pt-2 border-t border-(--color-border) text-xs opacity-50 text-center flex flex-wrap justify-center gap-4">
+          <span><kbd className="bg-(--color-bg-hover) px-1 rounded">f</kbd> {tSidebar("feeds")}</span>
+          <span><kbd className="bg-(--color-bg-hover) px-1 rounded">w</kbd> {tSidebar("workspaces")}</span>
+          <span><kbd className="bg-(--color-bg-hover) px-1 rounded">r</kbd> {tSidebar("readingList")}</span>
+          <span><kbd className="bg-(--color-bg-hover) px-1 rounded">t</kbd> {tSidebar("tags")}</span>
+          <span><kbd className="bg-(--color-bg-hover) px-1 rounded">h</kbd> {tSidebar("overview")}</span>
+          <span><kbd className="bg-(--color-bg-hover) px-1 rounded">s</kbd> {tSidebar("settings")}</span>
         </div>
       </div>
     </Modal>

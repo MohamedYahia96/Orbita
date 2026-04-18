@@ -183,7 +183,7 @@ export function ReadingListManager() {
                 <div className="flex items-start gap-3">
                   <button 
                     onClick={() => toggleReadStatus(item)}
-                    className={`mt-1 border-none bg-transparent cursor-pointer transition-colors ${item.isRead ? "text-green-500" : "text-[var(--colors-text)] opacity-30 hover:opacity-100"}`}
+                    className={`mt-1 border-none bg-transparent cursor-pointer transition-colors ${item.isRead ? "text-green-500" : "text-[var(--color-text-primary)] opacity-30 hover:opacity-100"}`}
                     title={item.isRead ? t("unread") : t("read")}
                   >
                     <CheckCircle size={20} />
@@ -213,10 +213,10 @@ export function ReadingListManager() {
                 </div>
 
                 <div className="flex items-center shrink-0">
-                  <button onClick={() => handleOpenModal(item)} className="p-2 border-none bg-transparent hover:bg-[var(--colors-bg-alt)] rounded-lg opacity-50 hover:opacity-100 cursor-pointer">
+                  <button onClick={() => handleOpenModal(item)} className="p-2 border-none bg-transparent hover:bg-[var(--color-bg-hover)] rounded-lg opacity-50 hover:opacity-100 cursor-pointer">
                     <Edit2 size={16} />
                   </button>
-                  <button onClick={() => handleDelete(item.id)} className="p-2 border-none bg-transparent hover:bg-red-500 hover:text-white rounded-lg opacity-50 hover:opacity-100 cursor-pointer">
+                  <button onClick={() => handleDelete(item.id)} className="p-2 border-none bg-transparent hover:bg-[var(--color-error)] hover:text-[#f4f4f4] rounded-lg opacity-50 hover:opacity-100 cursor-pointer">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -253,7 +253,7 @@ export function ReadingListManager() {
             <textarea 
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="w-full min-h-[80px] p-2 bg-transparent border border-[var(--colors-border)] rounded-lg text-[var(--colors-text)] outline-none focus:border-accent"
+              className="w-full min-h-[80px] p-2 bg-transparent border border-[var(--color-border)] rounded-lg text-[var(--color-text-primary)] outline-none focus:border-accent"
               placeholder="Why are you saving this?"
             />
           </div>
@@ -271,12 +271,12 @@ export function ReadingListManager() {
                       onClick={() => toggleTag(tag.id)}
                       className={`px-3 py-1 rounded-full text-xs font-medium border cursor-pointer transition-all ${
                         isSelected 
-                          ? 'border-[var(--colors-text)] opacity-100' 
+                          ? 'border-[var(--color-text-primary)] opacity-100' 
                           : 'border-transparent opacity-60 hover:opacity-100'
                       }`}
                       style={{ 
                         backgroundColor: isSelected ? tag.color : `${tag.color}30`,
-                        color: isSelected ? '#fff' : tag.color,
+                        color: isSelected ? '#f4f4f4' : tag.color,
                       }}
                     >
                       {tag.name}
@@ -287,7 +287,7 @@ export function ReadingListManager() {
             </div>
           )}
 
-          <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-[var(--colors-border)]">
+          <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-[var(--color-border)]">
             <Button variant="ghost" type="button" onClick={handleCloseModal}>{t("cancel")}</Button>
             <Button type="submit" disabled={isSubmitting || !title.trim()}>
               {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t("save")}

@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     const tag = await prisma.tag.create({
       data: {
         name,
-        color: color || "#8b5cf6",
+        color: color || "#1d546c",
         userId,
       },
     });

@@ -21,7 +21,7 @@ export function TagManager() {
   
   // Form State
   const [name, setName] = useState("");
-  const [color, setColor] = useState("#8b5cf6"); // default purple
+  const [color, setColor] = useState("#1d546c");
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -53,7 +53,7 @@ export function TagManager() {
     } else {
       setEditingTag(null);
       setName("");
-      setColor("#8b5cf6");
+      setColor("#1d546c");
     }
     setIsModalOpen(true);
   };
@@ -61,7 +61,7 @@ export function TagManager() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setName("");
-    setColor("#8b5cf6");
+    setColor("#1d546c");
     setEditingTag(null);
   };
 
@@ -118,7 +118,7 @@ export function TagManager() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6 h-full max-w-5xl mx-auto border border-(--colors-border) rounded-2xl bg-(--colors-bg-alt)/30 backdrop-blur-sm shadow-xl">
+    <div className="flex flex-col gap-6 p-6 h-full max-w-5xl mx-auto border border-(--color-border) rounded-2xl bg-(--color-bg-tertiary)/30 backdrop-blur-sm shadow-xl">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-xl font-bold">{t("title")}</h2>
@@ -143,7 +143,7 @@ export function TagManager() {
           {tags.map((tag) => (
             <div 
               key={tag.id} 
-              className="flex items-center gap-2 group px-3 py-1.5 rounded-full border border-(--colors-border) bg-(--colors-bg) shadow-sm hover:border-accent transition-colors"
+              className="flex items-center gap-2 group px-3 py-1.5 rounded-full border border-(--color-border) bg-(--color-bg-primary) shadow-sm hover:border-accent transition-colors"
             >
               <div 
                 className="w-3 h-3 rounded-full shrink-0" 
@@ -159,7 +159,7 @@ export function TagManager() {
                 </button>
                 <button 
                   onClick={() => handleDelete(tag.id)}
-                  className="p-1 border-none bg-transparent hover:text-red-500 rounded cursor-pointer"
+                  className="p-1 border-none bg-transparent hover:text-[var(--color-error)] rounded cursor-pointer"
                 >
                   <Trash2 size={12} />
                 </button>
@@ -184,11 +184,11 @@ export function TagManager() {
           <div>
             <label className="block text-sm font-medium mb-1">{t("color")}</label>
             <div className="flex items-center gap-2 mt-2">
-              {['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'].map(c => (
+              {['#0c2b4e', '#1a3d64', '#1d546c', '#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9', '#3b82f6', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899', '#f43f5e'].map(c => (
                 <button
                   key={c}
                   type="button"
-                  className={`w-6 h-6 rounded-full border border-(--colors-border) cursor-pointer transition-transform ${color === c ? 'scale-125 shadow-md ring-2 ring-white/20 ring-offset-1 ring-offset-black' : 'scale-100 opacity-60 hover:opacity-100'}`}
+                  className={`w-6 h-6 rounded-full border border-(--color-border) cursor-pointer transition-transform ${color === c ? 'scale-125 shadow-md ring-2 ring-white/20 ring-offset-1 ring-offset-[var(--color-bg-primary)]' : 'scale-100 opacity-60 hover:opacity-100'}`}
                   style={{ backgroundColor: c }}
                   onClick={() => setColor(c)}
                 />

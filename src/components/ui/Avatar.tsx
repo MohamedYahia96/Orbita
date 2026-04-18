@@ -27,8 +27,8 @@ function getInitials(name: string): string {
 
 function getColorFromName(name: string): string {
   const colors = [
-    "#6366f1", "#8b5cf6", "#ec4899", "#ef4444",
-    "#f59e0b", "#22c55e", "#3b82f6", "#14b8a6",
+    "#0c2b4e", "#1a3d64", "#1d546c", "#236984",
+    "#2e7d8d", "#3c7596", "#ef4444", "#22c55e",
   ];
   let hash = 0;
   for (const char of name) hash = char.charCodeAt(0) + ((hash << 5) - hash);

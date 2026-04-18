@@ -23,7 +23,7 @@ export function WorkspaceManager() {
   
   // Form State
   const [name, setName] = useState("");
-  const [color, setColor] = useState("#3b82f6");
+  const [color, setColor] = useState("#1d546c");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -50,11 +50,11 @@ export function WorkspaceManager() {
     if (workspace) {
       setEditingWorkspace(workspace);
       setName(workspace.name);
-      setColor(workspace.color || "#3b82f6");
+      setColor(workspace.color || "#1d546c");
     } else {
       setEditingWorkspace(null);
       setName("");
-      setColor("#3b82f6");
+      setColor("#1d546c");
     }
     setIsModalOpen(true);
   };
@@ -62,7 +62,7 @@ export function WorkspaceManager() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setName("");
-    setColor("#3b82f6");
+    setColor("#1d546c");
     setEditingWorkspace(null);
   };
 
@@ -146,8 +146,8 @@ export function WorkspaceManager() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div 
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm"
-                    style={{ backgroundColor: ws.color || "#3b82f6" }}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-[#f4f4f4] shadow-sm"
+                    style={{ backgroundColor: ws.color || "#1d546c" }}
                   >
                     <Folder size={18} />
                   </div>
@@ -156,14 +156,14 @@ export function WorkspaceManager() {
                 <div className="flex items-center gap-1">
                   <button 
                     onClick={() => handleOpenModal(ws)}
-                    className="p-2 border-none bg-transparent hover:bg-(--colors-bg-alt) rounded-lg transition-colors opacity-70 hover:opacity-100 cursor-pointer"
+                    className="p-2 border-none bg-transparent hover:bg-(--color-bg-hover) rounded-lg transition-colors opacity-70 hover:opacity-100 cursor-pointer"
                     title="Edit"
                   >
                     <Edit2 size={16} />
                   </button>
                   <button 
                     onClick={() => handleDelete(ws.id)}
-                    className="p-2 border-none bg-transparent hover:bg-(--colors-danger) hover:text-white rounded-lg transition-colors opacity-70 hover:opacity-100 cursor-pointer"
+                    className="p-2 border-none bg-transparent hover:bg-(--color-error) hover:text-[#f4f4f4] rounded-lg transition-colors opacity-70 hover:opacity-100 cursor-pointer"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -190,7 +190,7 @@ export function WorkspaceManager() {
           <div>
             <label className="block text-sm font-medium mb-1">{t("color")}</label>
             <div className="flex items-center gap-2">
-              {['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#6366f1'].map(c => (
+              {['#0c2b4e', '#1a3d64', '#1d546c', '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'].map(c => (
                 <button
                   key={c}
                   type="button"

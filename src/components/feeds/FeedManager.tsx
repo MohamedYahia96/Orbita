@@ -286,7 +286,7 @@ export function FeedManager() {
           <p className="text-sm opacity-70">{t("subtitle")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={handleSyncAll} variant="secondary" disabled={isSyncing} className="flex items-center gap-2 text-sm bg-(--colors-bg-alt) border-(--colors-border) border">
+          <Button onClick={handleSyncAll} variant="secondary" disabled={isSyncing} className="flex items-center gap-2 text-sm bg-(--color-bg-tertiary) border-(--color-border) border">
             <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} /> {isSyncing ? t("syncing") : t("syncBtn")}
           </Button>
           <Button onClick={() => handleOpenModal()} className="flex items-center gap-2">
@@ -310,7 +310,7 @@ export function FeedManager() {
             <Card key={feed.id} className="p-4 flex flex-col gap-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-(--colors-bg-alt) border border-(--colors-border) overflow-hidden shrink-0">
+                  <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-(--color-bg-tertiary) border border-(--color-border) overflow-hidden shrink-0">
                     {feed.favicon ? (
                       <Image src={feed.favicon} alt={feed.title} width={24} height={24} className="w-6 h-6 object-contain" unoptimized />
                     ) : (
@@ -327,20 +327,20 @@ export function FeedManager() {
                 <div className="flex items-center">
                   <button 
                     onClick={() => togglePin(feed)}
-                    className={`p-1 border-none bg-transparent hover:bg-(--colors-bg-alt) rounded transition-colors cursor-pointer ${feed.isPinned ? "text-[#f59e0b] opacity-100" : "opacity-40 hover:opacity-100"}`}
+                    className={`p-1 border-none bg-transparent hover:bg-(--color-bg-hover) rounded transition-colors cursor-pointer ${feed.isPinned ? "text-[var(--color-warning)] opacity-100" : "opacity-40 hover:opacity-100"}`}
                     title={feed.isPinned ? t("unpinAction") : t("pinAction")}
                   >
                     <Pin size={16} fill={feed.isPinned ? "currentColor" : "none"} />
                   </button>
                   <button 
                     onClick={() => handleOpenModal(feed)}
-                    className="p-1 border-none bg-transparent hover:bg-(--colors-bg-alt) rounded transition-colors opacity-40 hover:opacity-100 cursor-pointer"
+                    className="p-1 border-none bg-transparent hover:bg-(--color-bg-hover) rounded transition-colors opacity-40 hover:opacity-100 cursor-pointer"
                   >
                     <Edit2 size={16} />
                   </button>
                   <button 
                     onClick={() => handleDelete(feed)}
-                    className="p-1 border-none bg-transparent hover:bg-(--colors-danger) hover:text-white rounded transition-colors opacity-40 hover:opacity-100 cursor-pointer"
+                    className="p-1 border-none bg-transparent hover:bg-(--color-error) hover:text-[#f4f4f4] rounded transition-colors opacity-40 hover:opacity-100 cursor-pointer"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -349,7 +349,7 @@ export function FeedManager() {
               
               {feed.workspaceId && workspaces.find(w => w.id === feed.workspaceId) && (
                 <div className="mt-2 inline-flex">
-                  <span className="text-xs px-2 py-1 bg-(--colors-bg-alt) rounded-md opacity-80 border border-(--colors-border)">
+                  <span className="text-xs px-2 py-1 bg-(--color-bg-tertiary) rounded-md opacity-80 border border-(--color-border)">
                     {workspaces.find(w => w.id === feed.workspaceId)?.name}
                   </span>
                 </div>
@@ -377,7 +377,7 @@ export function FeedManager() {
                       ${isTypeLocked ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
                       ${type === p.id
                         ? "border-accent bg-accent/10 text-accent font-medium"
-                        : "border-(--colors-border) bg-transparent hover:bg-(--colors-bg-alt)"
+                        : "border-(--color-border) bg-transparent hover:bg-(--color-bg-hover)"
                       }`}
                   >
                     {p.icon} {t(p.labelKey)}
@@ -444,13 +444,13 @@ export function FeedManager() {
           <div>
             <label className="block text-sm font-medium mb-1">{t("workspace")}</label>
             <select 
-              className="w-full h-10 px-3 bg-transparent border border-(--colors-border) rounded-lg text-(--colors-text) focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="w-full h-10 px-3 bg-transparent border border-(--color-border) rounded-lg text-(--color-text-primary) focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
               value={workspaceId}
               onChange={(e) => setWorkspaceId(e.target.value)}
             >
-              <option value="" className="bg-(--colors-bg) text-(--colors-text)">{t("unassigned")}</option>
+              <option value="" className="bg-(--color-bg-primary) text-(--color-text-primary)">{t("unassigned")}</option>
               {workspaces.map(w => (
-                <option key={w.id} value={w.id} className="bg-(--colors-bg) text-(--colors-text)">{w.name}</option>
+                <option key={w.id} value={w.id} className="bg-(--color-bg-primary) text-(--color-text-primary)">{w.name}</option>
               ))}
             </select>
           </div>

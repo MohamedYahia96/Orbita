@@ -50,7 +50,7 @@
 /* ---- Variants ---- */
 .primary {
   background: var(--color-accent);
-  color: #fff;
+  color: #f4f4f4;
 }
 .primary:hover:not(:disabled) {
   background: var(--color-accent-hover);
@@ -91,7 +91,7 @@
 
 .danger {
   background: var(--color-error);
-  color: #fff;
+  color: #f4f4f4;
 }
 .danger:hover:not(:disabled) {
   background: #dc2626;

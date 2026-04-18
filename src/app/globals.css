@@ -14,42 +14,42 @@
 
 :root {
   /* ---- Color System ---- */
-  /* We define HSL values so we can easily compose with opacity */
+  /* Palette source: #0C2B4E #1A3D64 #1D546C #F4F4F4 */
 
   /* --- Dark Theme (Default) --- */
-  --color-bg-primary: #0a0a12;
-  --color-bg-secondary: #12121e;
-  --color-bg-tertiary: #1a1a2e;
-  --color-bg-elevated: #1e1e34;
-  --color-bg-hover: #24243c;
-  --color-bg-active: #2a2a48;
+  --color-bg-primary: #0c2b4e;
+  --color-bg-secondary: #153a5f;
+  --color-bg-tertiary: #1a3d64;
+  --color-bg-elevated: #1e4c6f;
+  --color-bg-hover: #1d546c;
+  --color-bg-active: #26657f;
 
-  --color-surface: #16162a;
-  --color-surface-hover: #1e1e36;
-  --color-surface-active: #24243e;
+  --color-surface: #14375a;
+  --color-surface-hover: #1a3d64;
+  --color-surface-active: #1d546c;
 
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-strong: rgba(255, 255, 255, 0.15);
-  --color-border-focus: #6366f1;
+  --color-border: rgba(244, 244, 244, 0.14);
+  --color-border-strong: rgba(244, 244, 244, 0.3);
+  --color-border-focus: #f4f4f4;
 
-  --color-text-primary: #f0f0f8;
-  --color-text-secondary: #a0a0c0;
-  --color-text-tertiary: #6b6b8d;
-  --color-text-disabled: #4a4a6a;
-  --color-text-inverse: #0a0a12;
+  --color-text-primary: #f4f4f4;
+  --color-text-secondary: rgba(244, 244, 244, 0.8);
+  --color-text-tertiary: rgba(244, 244, 244, 0.62);
+  --color-text-disabled: rgba(244, 244, 244, 0.4);
+  --color-text-inverse: #0c2b4e;
 
   /* Accent / Brand */
-  --color-accent: #6366f1;
-  --color-accent-hover: #7c7ff7;
-  --color-accent-active: #5558e6;
-  --color-accent-subtle: rgba(99, 102, 241, 0.12);
-  --color-accent-text: #a5b4fc;
+  --color-accent: #1d546c;
+  --color-accent-hover: #236984;
+  --color-accent-active: #18485d;
+  --color-accent-subtle: rgba(29, 84, 108, 0.3);
+  --color-accent-text: #f4f4f4;
 
   /* Secondary Accent */
-  --color-secondary: #8b5cf6;
-  --color-secondary-hover: #a78bfa;
-  --color-secondary-active: #7c3aed;
-  --color-secondary-subtle: rgba(139, 92, 246, 0.12);
+  --color-secondary: #1a3d64;
+  --color-secondary-hover: #20517d;
+  --color-secondary-active: #143252;
+  --color-secondary-subtle: rgba(26, 61, 100, 0.34);
 
   /* Status Colors */
   --color-success: #22c55e;
@@ -145,13 +145,13 @@
   --radius-full: 9999px;
 
   /* --- Shadows --- */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
-  --shadow-glow-accent: 0 0 30px rgba(99, 102, 241, 0.4);
+  --shadow-xs: 0 1px 2px rgba(4, 15, 30, 0.24);
+  --shadow-sm: 0 3px 6px rgba(4, 15, 30, 0.3);
+  --shadow-md: 0 10px 24px rgba(4, 15, 30, 0.35);
+  --shadow-lg: 0 18px 38px rgba(4, 15, 30, 0.42);
+  --shadow-xl: 0 28px 56px rgba(4, 15, 30, 0.48);
+  --shadow-glow: 0 0 22px rgba(29, 84, 108, 0.42);
+  --shadow-glow-accent: 0 0 34px rgba(29, 84, 108, 0.52);
 
   /* --- Transitions --- */
   --transition-fast: 0.1s ease;
@@ -180,10 +180,21 @@
   --content-max-width: 1400px;
 
   /* --- Glassmorphism --- */
-  --glass-bg: rgba(22, 22, 42, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-bg: rgba(12, 43, 78, 0.72);
+  --glass-border: rgba(244, 244, 244, 0.14);
   --glass-blur: 16px;
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --glass-shadow: 0 12px 36px rgba(4, 15, 30, 0.42);
+
+  /* --- Legacy Variable Bridge --- */
+  --colors-bg: var(--color-bg-primary);
+  --colors-bg-alt: var(--color-bg-tertiary);
+  --colors-text: var(--color-text-primary);
+  --colors-border: var(--color-border);
+  --colors-danger: var(--color-error);
+  --bg-card: var(--color-bg-elevated);
+  --border-color: var(--color-border);
+  --accent-color: var(--color-accent);
+  --text-muted: var(--color-text-secondary);
 }
 
 /* ============================================
@@ -191,37 +202,37 @@
    ============================================ */
 
 [data-theme="light"] {
-  --color-bg-primary: #f8f9fc;
+  --color-bg-primary: #f4f4f4;
   --color-bg-secondary: #ffffff;
-  --color-bg-tertiary: #f1f3f8;
+  --color-bg-tertiary: #e7edf2;
   --color-bg-elevated: #ffffff;
-  --color-bg-hover: #f0f2f7;
-  --color-bg-active: #e8eaf3;
+  --color-bg-hover: #dce6ef;
+  --color-bg-active: #cddbe8;
 
   --color-surface: #ffffff;
-  --color-surface-hover: #f5f7fa;
-  --color-surface-active: #edf0f5;
+  --color-surface-hover: #eef3f7;
+  --color-surface-active: #e2ebf2;
 
-  --color-border: rgba(0, 0, 0, 0.08);
-  --color-border-strong: rgba(0, 0, 0, 0.15);
-  --color-border-focus: #6366f1;
+  --color-border: rgba(12, 43, 78, 0.16);
+  --color-border-strong: rgba(12, 43, 78, 0.3);
+  --color-border-focus: #1d546c;
 
-  --color-text-primary: #111827;
-  --color-text-secondary: #4b5563;
-  --color-text-tertiary: #9ca3af;
-  --color-text-disabled: #d1d5db;
-  --color-text-inverse: #f0f0f8;
+  --color-text-primary: #0c2b4e;
+  --color-text-secondary: #1a3d64;
+  --color-text-tertiary: #4f6a82;
+  --color-text-disabled: #8ba1b5;
+  --color-text-inverse: #f4f4f4;
 
-  --color-accent: #4f46e5;
-  --color-accent-hover: #4338ca;
-  --color-accent-active: #3730a3;
-  --color-accent-subtle: rgba(79, 70, 229, 0.08);
-  --color-accent-text: #4338ca;
+  --color-accent: #1d546c;
+  --color-accent-hover: #18485d;
+  --color-accent-active: #12394a;
+  --color-accent-subtle: rgba(29, 84, 108, 0.14);
+  --color-accent-text: #1a3d64;
 
-  --color-secondary: #7c3aed;
-  --color-secondary-hover: #6d28d9;
-  --color-secondary-active: #5b21b6;
-  --color-secondary-subtle: rgba(124, 58, 237, 0.08);
+  --color-secondary: #1a3d64;
+  --color-secondary-hover: #143252;
+  --color-secondary-active: #0f2740;
+  --color-secondary-subtle: rgba(26, 61, 100, 0.14);
 
   --color-success: #16a34a;
   --color-success-subtle: rgba(22, 163, 74, 0.08);
@@ -254,18 +265,18 @@
   --color-rss-subtle: rgba(242, 101, 34, 0.06);
 
   /* Light theme shadows */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.07), 0 4px 6px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.08), 0 10px 10px rgba(0, 0, 0, 0.04);
-  --shadow-glow: 0 0 20px rgba(79, 70, 229, 0.15);
-  --shadow-glow-accent: 0 0 30px rgba(79, 70, 229, 0.2);
+  --shadow-xs: 0 1px 2px rgba(12, 43, 78, 0.06);
+  --shadow-sm: 0 3px 8px rgba(12, 43, 78, 0.08);
+  --shadow-md: 0 10px 20px rgba(12, 43, 78, 0.11);
+  --shadow-lg: 0 18px 34px rgba(12, 43, 78, 0.14);
+  --shadow-xl: 0 28px 48px rgba(12, 43, 78, 0.18);
+  --shadow-glow: 0 0 20px rgba(29, 84, 108, 0.18);
+  --shadow-glow-accent: 0 0 30px rgba(29, 84, 108, 0.24);
 
   /* Light theme glass */
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(0, 0, 0, 0.06);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  --glass-bg: rgba(244, 244, 244, 0.76);
+  --glass-border: rgba(12, 43, 78, 0.12);
+  --glass-shadow: 0 12px 30px rgba(12, 43, 78, 0.12);
 }
 
 /* ============================================
@@ -446,10 +457,10 @@ ol {
 }
 
 .glass-strong {
-  background: rgba(22, 22, 42, 0.85);
+  background: rgba(12, 43, 78, 0.85);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(244, 244, 244, 0.16);
   box-shadow: var(--glass-shadow);
 }
 
@@ -463,11 +474,11 @@ ol {
    ============================================ */
 
 .gradient-accent {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #1a3d64, #1d546c);
 }
 
 .gradient-accent-vibrant {
-  background: linear-gradient(135deg, #6366f1, #ec4899);
+  background: linear-gradient(135deg, #0c2b4e, #1d546c);
 }
 
 .gradient-surface {
@@ -479,7 +490,7 @@ ol {
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #6366f1, #a78bfa);
+  background: linear-gradient(135deg, #1a3d64, #1d546c);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -496,7 +507,7 @@ ol {
   position: absolute;
   inset: -1px;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(139, 92, 246, 0.4));
+  background: linear-gradient(135deg, rgba(26, 61, 100, 0.55), rgba(29, 84, 108, 0.55));
   z-index: -1;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
@@ -513,7 +524,7 @@ ol {
   position: absolute;
   inset: -2px;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3));
+  background: linear-gradient(135deg, rgba(26, 61, 100, 0.35), rgba(29, 84, 108, 0.35));
   filter: blur(12px);
   z-index: -1;
   opacity: 0;
