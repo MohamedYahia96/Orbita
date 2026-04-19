@@ -1,18 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import ReactGridLayout from "react-grid-layout";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Activity,
   Bell,
   BookMarked,
   GitBranch,
-  GripVertical,
   Link2,
   Mail,
   RefreshCw,
   ScrollText,
-  Trash2,
   Trophy,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -20,24 +17,9 @@ import { Link } from "@/i18n/routing";
 import { Button, Card } from "@/components/ui";
 import {
   DASHBOARD_WIDGET_IDS,
-  type DashboardLayoutItem,
-  type DashboardLayoutState,
   type DashboardWidgetId,
-  createDefaultDashboardLayout,
-  getDefaultLayoutItem,
-  sanitizeDashboardLayout,
 } from "@/lib/dashboard-layout";
 import styles from "./WidgetGrid.module.css";
-
-type GridLayoutItem = {
-  i: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  minW?: number;
-  minH?: number;
-};
 
 type FeedSummary = {
   id: string;
@@ -96,6 +78,17 @@ const EMPTY_DASHBOARD_DATA: DashboardData = {
   sportsLiveMatches: 0,
 };
 
+const WIDGET_SPAN_CLASS_NAMES: Record<DashboardWidgetId, string> = {
+  activity: styles.widgetSpan8,
+  notifications: styles.widgetSpan4,
+  sports: styles.widgetSpan4,
+  email: styles.widgetSpan4,
+  git: styles.widgetSpan4,
+  digest: styles.widgetSpan4,
+  saved: styles.widgetSpan6,
+  quickLinks: styles.widgetSpan6,
+};
+
 function formatDateTime(value?: string) {
   if (!value) {
     return "--";
@@ -109,46 +102,19 @@ function formatDateTime(value?: string) {
   return date.toLocaleDateString();
 }
 
-function toGridLayout(items: DashboardLayoutItem[]): GridLayoutItem[] {
-  return items.map((item) => ({
-    i: item.i,
-    x: item.x,
-    y: item.y,
-    w: item.w,
-    h: item.h,
-    minW: item.minW,
-    minH: item.minH,
-  }));
-}
-
 export function WidgetGrid() {
   const t = useTranslations("Overview");
 
-  const [layoutState, setLayoutState] = useState<DashboardLayoutState>(() => createDefaultDashboardLayout());
-  const [layoutReady, setLayoutReady] = useState(false);
-  const [layoutStatus, setLayoutStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [dashboardData, setDashboardData] = useState<DashboardData>(EMPTY_DASHBOARD_DATA);
+  const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [gridWidth, setGridWidth] = useState(1200);
 
-  const lastPersistedLayoutRef = useRef<string>("");
-  const gridRootRef = useRef<HTMLDivElement | null>(null);
-
-  const updateLayoutState = useCallback(
-    (updater: (current: DashboardLayoutState) => DashboardLayoutState) => {
-      setLayoutState((current) => {
-        const next = sanitizeDashboardLayout(updater(current));
-        const currentSerialized = JSON.stringify(current);
-        const nextSerialized = JSON.stringify(next);
-
-        return currentSerialized === nextSerialized ? current : next;
-      });
-    },
-    []
-  );
-
-  const refreshWidgetsData = useCallback(async () => {
-    setIsRefreshing(true);
+  const refreshWidgetsData = useCallback(async (manualRefresh = false) => {
+    if (manualRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
 
     try {
       const [feedsRes, notificationsRes, digestRes, readingListRes, timelineRes, sportsRes] =
@@ -238,199 +204,17 @@ export function WidgetGrid() {
     } catch {
       setDashboardData((current) => current);
     } finally {
-      setIsRefreshing(false);
+      if (manualRefresh) {
+        setIsRefreshing(false);
+      } else {
+        setIsLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const loadLayout = async () => {
-      try {
-        const response = await fetch("/api/users/layout", { cache: "no-store" });
-        const payload = (await response.json().catch(() => null)) as unknown;
-        const normalizedLayout = sanitizeDashboardLayout(payload);
-
-        if (cancelled) {
-          return;
-        }
-
-        setLayoutState(normalizedLayout);
-        lastPersistedLayoutRef.current = JSON.stringify(normalizedLayout);
-      } catch {
-        if (cancelled) {
-          return;
-        }
-
-        const fallback = createDefaultDashboardLayout();
-        setLayoutState(fallback);
-        lastPersistedLayoutRef.current = JSON.stringify(fallback);
-      } finally {
-        if (!cancelled) {
-          setLayoutReady(true);
-        }
-      }
-    };
-
-    void loadLayout();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    void refreshWidgetsData();
+    void refreshWidgetsData(false);
   }, [refreshWidgetsData]);
-
-  useEffect(() => {
-    const rootElement = gridRootRef.current;
-    if (!rootElement) {
-      return;
-    }
-
-    const updateWidth = () => {
-      setGridWidth(Math.max(320, rootElement.clientWidth));
-    };
-
-    updateWidth();
-
-    const observer = new ResizeObserver(() => {
-      updateWidth();
-    });
-
-    observer.observe(rootElement);
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!layoutReady) {
-      return;
-    }
-
-    const serializedLayout = JSON.stringify(layoutState);
-    if (serializedLayout === lastPersistedLayoutRef.current) {
-      return;
-    }
-
-    const timer = window.setTimeout(async () => {
-      setLayoutStatus("saving");
-      try {
-        const response = await fetch("/api/users/layout", {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: serializedLayout,
-        });
-
-        if (!response.ok) {
-          throw new Error("layout_save_failed");
-        }
-
-        lastPersistedLayoutRef.current = serializedLayout;
-        setLayoutStatus("saved");
-
-        window.setTimeout(() => {
-          setLayoutStatus((current) => (current === "saved" ? "idle" : current));
-        }, 1400);
-      } catch {
-        setLayoutStatus("error");
-      }
-    }, 500);
-
-    return () => {
-      window.clearTimeout(timer);
-    };
-  }, [layoutReady, layoutState]);
-
-  const commitGridLayout = useCallback(
-    (nextLayout: readonly GridLayoutItem[]) => {
-      updateLayoutState((current) => {
-        const layoutMap = new Map(nextLayout.map((item) => [item.i, item] as const));
-
-        const nextItems = current.enabledWidgets.map((widgetId) => {
-          const fallback =
-            current.layout.find((item) => item.i === widgetId) ?? getDefaultLayoutItem(widgetId);
-          const nextItem = layoutMap.get(widgetId);
-
-          if (!nextItem) {
-            return fallback;
-          }
-
-          return {
-            ...fallback,
-            x: nextItem.x,
-            y: nextItem.y,
-            w: nextItem.w,
-            h: nextItem.h,
-          };
-        });
-
-        return {
-          ...current,
-          layout: nextItems,
-        };
-      });
-    },
-    [updateLayoutState]
-  );
-
-  const handleAddWidget = useCallback(
-    (widgetId: DashboardWidgetId) => {
-      updateLayoutState((current) => {
-        if (current.enabledWidgets.includes(widgetId)) {
-          return current;
-        }
-
-        const nextY = current.layout.reduce(
-          (maxY, item) => Math.max(maxY, item.y + item.h),
-          0
-        );
-        const nextItem = {
-          ...getDefaultLayoutItem(widgetId),
-          y: nextY,
-        };
-
-        return {
-          ...current,
-          enabledWidgets: [...current.enabledWidgets, widgetId],
-          layout: [...current.layout, nextItem],
-        };
-      });
-    },
-    [updateLayoutState]
-  );
-
-  const handleRemoveWidget = useCallback(
-    (widgetId: DashboardWidgetId) => {
-      updateLayoutState((current) => ({
-        ...current,
-        enabledWidgets: current.enabledWidgets.filter((item) => item !== widgetId),
-        layout: current.layout.filter((item) => item.i !== widgetId),
-      }));
-    },
-    [updateLayoutState]
-  );
-
-  const enabledWidgets = layoutState.enabledWidgets;
-  const availableWidgets = DASHBOARD_WIDGET_IDS.filter(
-    (widgetId) => !enabledWidgets.includes(widgetId)
-  );
-
-  const layoutForGrid = useMemo(
-    () =>
-      toGridLayout(
-        enabledWidgets.map(
-          (widgetId) =>
-            layoutState.layout.find((item) => item.i === widgetId) ??
-            getDefaultLayoutItem(widgetId)
-        )
-      ),
-    [enabledWidgets, layoutState.layout]
-  );
 
   const widgetDefinitions = useMemo<Record<DashboardWidgetId, WidgetDefinition>>(
     () => ({
@@ -598,15 +382,6 @@ export function WidgetGrid() {
     [dashboardData, t]
   );
 
-  const layoutStatusLabel =
-    layoutStatus === "saving"
-      ? t("dashboardLayoutSaving")
-      : layoutStatus === "saved"
-        ? t("dashboardLayoutSaved")
-        : layoutStatus === "error"
-          ? t("dashboardLayoutSaveFailed")
-          : t("dashboardLayoutSynced");
-
   return (
     <section className={styles.section}>
       <div className={styles.toolbar}>
@@ -618,103 +393,38 @@ export function WidgetGrid() {
         <div className={styles.actions}>
           <Button
             type="button"
-            variant="secondary"
+            variant="primary"
             size="sm"
             icon={<RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />}
-            onClick={refreshWidgetsData}
+            onClick={() => void refreshWidgetsData(true)}
             loading={isRefreshing}
+            disabled={isLoading}
           >
             {t("dashboardRefreshData")}
           </Button>
-
-          <span
-            className={`${styles.saveStatus} ${
-              layoutStatus === "saving"
-                ? styles.saveSaving
-                : layoutStatus === "saved"
-                  ? styles.saveSaved
-                  : layoutStatus === "error"
-                    ? styles.saveError
-                    : styles.saveIdle
-            }`}
-          >
-            {layoutStatusLabel}
-          </span>
         </div>
       </div>
 
-      <div className={styles.addRow}>
-        {availableWidgets.length === 0 ? (
-          <p className={styles.placeholder}>{t("dashboardNoMoreWidgets")}</p>
-        ) : (
-          availableWidgets.map((widgetId) => {
-            const widget = widgetDefinitions[widgetId];
-
-            return (
-              <Button
-                key={widgetId}
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => handleAddWidget(widgetId)}
-              >
-                {t("dashboardAddWidget", { widget: widget.title })}
-              </Button>
-            );
-          })
-        )}
-      </div>
-
-      {!layoutReady ? (
+      {isLoading ? (
         <Card padding="md" variant="glass">
           <p>{t("dashboardLayoutLoading")}</p>
         </Card>
-      ) : enabledWidgets.length === 0 ? (
-        <div className={styles.emptyEnabled}>{t("dashboardNoWidgetsEnabled")}</div>
       ) : (
-        <div className={styles.gridRoot} ref={gridRootRef}>
-          <ReactGridLayout
-            layout={layoutForGrid}
-            width={gridWidth}
-            gridConfig={{
-              cols: 12,
-              rowHeight: 38,
-              margin: [12, 12],
-              containerPadding: [0, 0],
-              maxRows: Number.POSITIVE_INFINITY,
-            }}
-            dragConfig={{
-              enabled: true,
-              handle: `.${styles.dragHandle}`,
-            }}
-            resizeConfig={{
-              enabled: true,
-            }}
-            onLayoutChange={commitGridLayout}
-          >
-            {enabledWidgets.map((widgetId) => {
+        <div className={styles.gridRoot}>
+          <div className={styles.fixedGrid}>
+            {DASHBOARD_WIDGET_IDS.map((widgetId) => {
               const widget = widgetDefinitions[widgetId];
               return (
-                <div key={widget.id}>
+                <div
+                  key={widget.id}
+                  className={`${styles.widgetGridItem} ${WIDGET_SPAN_CLASS_NAMES[widget.id]}`}
+                >
                   <article className={styles.widgetShell}>
                     <header className={styles.widgetHeader}>
-                      <div className={styles.dragHandle}>
-                        <GripVertical size={14} className={styles.widgetIcon} />
-                        <span className={styles.widgetTitle}>
-                          <span className={styles.widgetIcon}>{widget.icon}</span>
-                          <span className={styles.widgetLabel}>{widget.title}</span>
-                        </span>
-                      </div>
-
-                      <button
-                        type="button"
-                        className={styles.removeBtn}
-                        onClick={() => handleRemoveWidget(widget.id)}
-                        aria-label={t("dashboardRemoveWidget", { widget: widget.title })}
-                        title={t("dashboardRemoveWidget", { widget: widget.title })}
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <span className={styles.widgetTitle}>
+                        <span className={styles.widgetIcon}>{widget.icon}</span>
+                        <span className={styles.widgetLabel}>{widget.title}</span>
+                      </span>
                     </header>
 
                     <div className={styles.widgetBody}>
@@ -725,7 +435,7 @@ export function WidgetGrid() {
                 </div>
               );
             })}
-          </ReactGridLayout>
+          </div>
         </div>
       )}
     </section>

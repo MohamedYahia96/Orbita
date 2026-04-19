@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Bell, Check, ExternalLink, BellRing } from "lucide-react";
 import { Badge, Button } from "@/components/ui";
 import { useTranslations } from "next-intl";
+import { registerOrbitaServiceWorker } from "@/lib/pwa";
 
 const applicationServerKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 
@@ -41,7 +42,7 @@ export function NotificationBell() {
     
     // Check if push is already enabled
     if ('serviceWorker' in navigator && 'PushManager' in window) {
-      navigator.serviceWorker.register('/sw.js').then(reg => {
+      registerOrbitaServiceWorker().then(reg => {
         reg.pushManager.getSubscription().then(sub => {
           if (sub) setIsPushEnabled(true);
         });
@@ -93,7 +94,7 @@ export function NotificationBell() {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') return;
       
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await registerOrbitaServiceWorker();
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlB64ToUint8Array(applicationServerKey)

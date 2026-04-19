@@ -35,50 +35,6 @@
   flex-wrap: wrap;
 }
 
-.saveStatus {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--color-border);
-  padding: 0.3rem 0.55rem;
-}
-
-.saveIdle {
-  opacity: 0.72;
-}
-
-.saveSaving {
-  color: var(--color-warning-text);
-  border-color: var(--color-warning);
-  background: var(--color-warning-subtle);
-}
-
-.saveSaved {
-  color: var(--color-success-text);
-  border-color: var(--color-success);
-  background: var(--color-success-subtle);
-}
-
-.saveError {
-  color: var(--color-error-text);
-  border-color: var(--color-error);
-  background: var(--color-error-subtle);
-}
-
-.addRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.emptyEnabled {
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-lg);
-  padding: var(--space-6);
-  text-align: center;
-  color: var(--color-text-secondary);
-}
-
 .gridRoot {
   border-radius: var(--radius-xl);
   border: 1px solid var(--color-border);
@@ -86,35 +42,27 @@
   padding: var(--space-3);
 }
 
-.gridRoot :global(.react-grid-layout) {
-  min-height: 18rem;
+.fixedGrid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--space-3);
 }
 
-.gridRoot :global(.react-grid-item) {
-  transition: transform var(--transition-base), width var(--transition-base), height var(--transition-base);
+.widgetGridItem {
+  min-width: 0;
+  grid-column: span 12;
 }
 
-.gridRoot :global(.react-grid-item.react-grid-placeholder) {
-  border-radius: var(--radius-lg);
-  border: 1px dashed var(--color-accent);
-  background: var(--color-accent-subtle);
-  opacity: 0.85;
+.widgetSpan4 {
+  grid-column: span 4;
 }
 
-.gridRoot :global(.react-resizable-handle) {
-  width: 16px;
-  height: 16px;
-  right: 2px;
-  bottom: 2px;
+.widgetSpan6 {
+  grid-column: span 6;
 }
 
-.gridRoot :global(.react-resizable-handle::after) {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-right: 2px solid var(--color-border-strong);
-  border-bottom: 2px solid var(--color-border-strong);
-  border-bottom-right-radius: 3px;
+.widgetSpan8 {
+  grid-column: span 8;
 }
 
 .widgetShell {
@@ -130,19 +78,11 @@
 .widgetHeader {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-secondary);
-}
-
-.dragHandle {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-  cursor: move;
 }
 
 .widgetTitle {
@@ -162,25 +102,6 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.removeBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  width: 1.9rem;
-  height: 1.9rem;
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.removeBtn:hover {
-  color: var(--color-error-text);
-  border-color: var(--color-error);
-  background: var(--color-error-subtle);
 }
 
 .widgetBody {
@@ -255,8 +176,54 @@
   font-size: var(--text-sm);
 }
 
+@media (max-width: 1080px) {
+  .fixedGrid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .widgetSpan8 {
+    grid-column: span 6;
+  }
+
+  .widgetSpan6 {
+    grid-column: span 6;
+  }
+
+  .widgetSpan4 {
+    grid-column: span 3;
+  }
+}
+
 @media (max-width: 920px) {
   .gridRoot {
     padding: var(--space-2);
+  }
+
+  .fixedGrid {
+    gap: var(--space-2);
+  }
+}
+
+@media (max-width: 760px) {
+  .fixedGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .widgetSpan8,
+  .widgetSpan6,
+  .widgetSpan4 {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 520px) {
+  .fixedGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .widgetSpan8,
+  .widgetSpan6,
+  .widgetSpan4 {
+    grid-column: span 1;
   }
 }

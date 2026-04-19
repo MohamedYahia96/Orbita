@@ -34,6 +34,8 @@ export default function Header() {
       tags: "tags",
       digest: "digest",
       notifications: "notifications",
+      status: "status",
+      analytics: "analytics",
       settings: "settings",
     };
 

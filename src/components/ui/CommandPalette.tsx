@@ -40,6 +40,8 @@ export default function CommandPalette() {
     { id: "reading-list", name: t("shortcuts.readingList"), icon: <Bookmark size={18} />, action: () => router.push("/reading-list") },
     { id: "tags", name: t("shortcuts.tags"), icon: <TagIcon size={18} />, action: () => router.push("/tags") },
     { id: "notifications", name: t("shortcuts.notifications"), icon: <Bell size={18} />, action: () => router.push("/notifications") },
+    { id: "status", name: t("shortcuts.status"), icon: <Bell size={18} />, action: () => router.push("/status") },
+    { id: "analytics", name: t("shortcuts.analytics"), icon: <Search size={18} />, action: () => router.push("/analytics") },
     { id: "settings", name: t("shortcuts.settings"), icon: <Settings size={18} />, action: () => router.push("/settings") },
   ];
 
@@ -85,6 +87,7 @@ export default function CommandPalette() {
         if (e.key === "f") router.push("/feeds");
         if (e.key === "r") router.push("/reading-list");
         if (e.key === "t") router.push("/tags");
+        if (e.key === "a") router.push("/analytics");
         if (e.key === "s") router.push("/settings");
       }
     };
@@ -165,6 +168,7 @@ export default function CommandPalette() {
           <span><kbd className="bg-(--color-bg-hover) px-1 rounded">w</kbd> {tSidebar("workspaces")}</span>
           <span><kbd className="bg-(--color-bg-hover) px-1 rounded">r</kbd> {tSidebar("readingList")}</span>
           <span><kbd className="bg-(--color-bg-hover) px-1 rounded">t</kbd> {tSidebar("tags")}</span>
+          <span><kbd className="bg-(--color-bg-hover) px-1 rounded">a</kbd> Analytics</span>
           <span><kbd className="bg-(--color-bg-hover) px-1 rounded">h</kbd> {tSidebar("overview")}</span>
           <span><kbd className="bg-(--color-bg-hover) px-1 rounded">s</kbd> {tSidebar("settings")}</span>
         </div>

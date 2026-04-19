@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/routing";
 import { BellRing, CheckCircle2, Compass, LayoutGrid, Loader2, Rss } from "lucide-react";
 import { Button, Input, Modal, useToast } from "@/components/ui";
+import { registerOrbitaServiceWorker } from "@/lib/pwa";
 
 type WizardStep = 1 | 2 | 3 | 4 | 5;
 type ThemeOption = "light" | "dark" | "system";
@@ -127,7 +128,7 @@ export function OnboardingWizard() {
     setPushSupported(true);
 
     try {
-      const registration = await navigator.serviceWorker.register("/sw.js");
+      const registration = await registerOrbitaServiceWorker();
       const subscription = await registration.pushManager.getSubscription();
       setPushEnabled(Boolean(subscription));
     } catch {
@@ -290,7 +291,7 @@ export function OnboardingWizard() {
         return;
       }
 
-      const registration = await navigator.serviceWorker.register("/sw.js");
+      const registration = await registerOrbitaServiceWorker();
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlB64ToUint8Array(APPLICATION_SERVER_KEY),

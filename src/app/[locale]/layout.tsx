@@ -16,6 +16,16 @@ export const metadata: Metadata = {
   title: "Orbita — Your Digital Command Center",
   description:
     "Orbita is a multi-platform dashboard that aggregates social media, news, academic, and development feeds into one beautiful interface.",
+  manifest: "/manifest.webmanifest",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0b1220" },
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+  ],
+  appleWebApp: {
+    capable: true,
+    title: "Orbita",
+    statusBarStyle: "default",
+  },
   keywords: [
     "dashboard",
     "social media",

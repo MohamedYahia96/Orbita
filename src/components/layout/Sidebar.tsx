@@ -10,6 +10,8 @@ import {
   Rss,
   Bell,
   Settings,
+  Activity,
+  ChartColumn,
   ChevronLeft,
   ChevronRight,
   Bookmark,
@@ -32,6 +34,8 @@ type NavHref =
   | "/tags"
   | "/digest"
   | "/notifications"
+  | "/status"
+  | "/analytics"
   | "/settings";
 
 type NavItem = {
@@ -60,6 +64,8 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     { href: "/tags", label: t("tags"), icon: <TagIcon size={20} /> },
     { href: "/digest", label: getOptionalLabel("digest", "Smart Digest"), icon: <Mail size={20} /> },
     { href: "/notifications", label: t("notifications"), icon: <Bell size={20} /> },
+    { href: "/status", label: getOptionalLabel("status", "Status"), icon: <Activity size={20} /> },
+    { href: "/analytics", label: getOptionalLabel("analytics", "Analytics"), icon: <ChartColumn size={20} /> },
     { href: "/settings", label: t("settings"), icon: <Settings size={20} /> },
   ];
 

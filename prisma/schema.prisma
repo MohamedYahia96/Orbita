@@ -29,6 +29,7 @@ model User {
   workspaces    Workspace[]
   feeds         Feed[]
   tags          Tag[]
+  alertRules    AlertRule[]
   googleToken   GoogleToken?
   subscriptions PushSubscription[]
 }
@@ -72,6 +73,7 @@ model Feed {
   
   feedItems            FeedItem[]
   telegramBot          TelegramBot?
+  alertRules           AlertRule[]
 }
 
 model TelegramBot {
@@ -119,6 +121,28 @@ model Tag {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   feedItems FeedItemTag[]
+  alertRules AlertRule[]
+}
+
+model AlertRule {
+  id             String   @id @default(cuid())
+  name           String
+  enabled        Boolean  @default(true)
+  keyword        String?
+  sender         String?
+  feedId         String?
+  feed           Feed?    @relation(fields: [feedId], references: [id], onDelete: SetNull)
+  actionPush     Boolean  @default(true)
+  actionBookmark Boolean  @default(false)
+  actionTagId    String?
+  actionTag      Tag?     @relation(fields: [actionTagId], references: [id], onDelete: SetNull)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId, enabled])
+  @@index([feedId])
 }
 
 model FeedItemTag {

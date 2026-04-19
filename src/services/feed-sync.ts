@@ -13,7 +13,7 @@ import {
   fetchDriveFeedItems,
 } from './fetchers/drive';
 import prisma from '@/lib/prisma';
-import type { Feed, Prisma } from '@prisma/client';
+import type { Feed, FeedItem, Prisma } from '@prisma/client';
 
 type SyncOptions = {
   userId?: string;
@@ -70,6 +70,151 @@ type GmailFeedMetadata = {
 type DriveFeedMetadata = {
   folderId: string;
 };
+
+type ParsedExtraData = {
+  from?: string;
+};
+
+function parseExtraData(extraData: string | null): ParsedExtraData {
+  if (!extraData) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(extraData) as ParsedExtraData;
+  } catch {
+    return {};
+  }
+}
+
+function matchesAlertRule({
+  rule,
+  item,
+  feed,
+}: {
+  rule: {
+    keyword: string | null;
+    sender: string | null;
+    feedId: string | null;
+  };
+  item: FeedItem;
+  feed: Feed;
+}) {
+  if (rule.feedId && rule.feedId !== feed.id) {
+    return false;
+  }
+
+  const textBlob = `${item.title} ${item.content || ''}`.toLowerCase();
+
+  if (rule.keyword && !textBlob.includes(rule.keyword.toLowerCase())) {
+    return false;
+  }
+
+  if (rule.sender) {
+    const senderNeedle = rule.sender.toLowerCase();
+    const parsed = parseExtraData(item.extraData);
+    const senderValue = (parsed.from || '').toLowerCase();
+
+    if (!senderValue.includes(senderNeedle)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+async function applyAlertRulesForNewItems({
+  feed,
+  insertedItems,
+}: {
+  feed: Feed;
+  insertedItems: FeedItem[];
+}) {
+  if (insertedItems.length === 0) {
+    return;
+  }
+
+  const rules = await prisma.alertRule.findMany({
+    where: {
+      userId: feed.userId,
+      enabled: true,
+      OR: [
+        { feedId: null },
+        { feedId: feed.id },
+      ],
+    },
+    orderBy: {
+      createdAt: 'asc',
+    },
+  });
+
+  if (rules.length === 0) {
+    return;
+  }
+
+  for (const rule of rules) {
+    const matched = insertedItems.filter((item) =>
+      matchesAlertRule({
+        rule,
+        item,
+        feed,
+      })
+    );
+
+    if (matched.length === 0) {
+      continue;
+    }
+
+    if (rule.actionBookmark) {
+      await prisma.feedItem.updateMany({
+        where: {
+          id: {
+            in: matched.map((item) => item.id),
+          },
+        },
+        data: {
+          isBookmarked: true,
+        },
+      });
+    }
+
+    if (rule.actionTagId) {
+      await Promise.all(
+        matched.map((item) =>
+          prisma.feedItemTag.upsert({
+            where: {
+              feedItemId_tagId: {
+                feedItemId: item.id,
+                tagId: rule.actionTagId as string,
+              },
+            },
+            create: {
+              feedItemId: item.id,
+              tagId: rule.actionTagId as string,
+            },
+            update: {},
+          })
+        )
+      );
+    }
+
+    if (rule.actionPush) {
+      try {
+        const { notifyUsersOfNewItems } = await import('./push-sender');
+        await notifyUsersOfNewItems({
+          userId: feed.userId,
+          feedWorkspaceId: feed.workspaceId,
+          feedTitle: `${feed.title} • ${rule.name}`,
+          newItemCount: matched.length,
+          recentItemTitle: matched[0]?.title || feed.title,
+          url: matched[0]?.url || null,
+        });
+      } catch (pushError) {
+        console.warn('[Feed Sync] Alert-rule push delivery failed:', pushError);
+      }
+    }
+  }
+}
 
 function parseGmailFeedMetadata(metadata: string | null): GmailFeedMetadata {
   if (!metadata) {
@@ -286,9 +431,14 @@ export async function syncSingleFeed(feed: Feed) {
       const itemsToInsert = newItems.filter(item => !item.url || !existingUrls.has(item.url));
 
       if (itemsToInsert.length > 0) {
-        await prisma.feedItem.createMany({
-          data: itemsToInsert,
-        });
+        const insertedItems = await Promise.all(
+          itemsToInsert.map((item) =>
+            prisma.feedItem.create({
+              data: item,
+            })
+          )
+        );
+
         console.log(`[Feed Sync] Inserted ${itemsToInsert.length} new items for feed: ${feed.title}`);
 
         // Trigger Web Push Notification
@@ -304,6 +454,15 @@ export async function syncSingleFeed(feed: Feed) {
           });
         } catch (pushError) {
           console.warn('[Feed Sync] Push delivery failed:', pushError);
+        }
+
+        try {
+          await applyAlertRulesForNewItems({
+            feed,
+            insertedItems,
+          });
+        } catch (ruleError) {
+          console.warn('[Feed Sync] Alert-rule processing failed:', ruleError);
         }
       }
     }
