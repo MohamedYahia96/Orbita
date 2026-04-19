@@ -14,6 +14,25 @@
   "Dashboard": {
     "searchPlaceholder": "Search commands, feeds, workspaces... (Ctrl+K)"
   },
+  "Auth": {
+    "loginTitle": "Sign in to Orbita",
+    "loginSubtitle": "Use your account to access your dashboard.",
+    "registerTitle": "Create your Orbita account",
+    "registerSubtitle": "Set up a new account and start organizing your feeds.",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "name": "Full name",
+    "signIn": "Sign in",
+    "createAccount": "Create account",
+    "haveAccount": "Already have an account?",
+    "noAccount": "New to Orbita?",
+    "loginFailed": "Failed to sign in.",
+    "registerFailed": "Failed to create account.",
+    "passwordMismatch": "Passwords do not match.",
+    "passwordHint": "Use at least 8 characters.",
+    "demoHint": "Demo account: demo@orbita.local / demo123"
+  },
   "Overview": {
     "activeFeeds": "Active Feeds",
     "unreadNotifs": "Unread Notifications",

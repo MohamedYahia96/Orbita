@@ -1,28 +1,20 @@
-"use client";
+import { redirect } from "next/navigation";
+import { getCurrentSessionUser } from "@/lib/auth";
+import { DashboardShell } from "@/components/layout/DashboardShell";
 
-import { useState } from "react";
-import { Sidebar, Header, MainContent } from "@/components/layout";
-import { CommandPalette } from "@/components/ui";
-
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: Promise<{ locale: string }>;
 }) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { locale } = await params;
+  const user = await getCurrentSessionUser();
 
-  return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
-      
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <Header />
-        <MainContent>{children}</MainContent>
-      </div>
-      <CommandPalette />
-    </div>
-  );
+  if (!user) {
+    redirect(`/${locale}/login?next=/${locale}/overview`);
+  }
+
+  return <DashboardShell>{children}</DashboardShell>;
 }

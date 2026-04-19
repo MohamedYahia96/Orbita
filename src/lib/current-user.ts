@@ -1,20 +1,15 @@
 import prisma from "@/lib/prisma";
+import { ensureDemoAccount, getCurrentSessionUser } from "@/lib/auth";
 
 export async function getFirstUser() {
   return prisma.user.findFirst();
 }
 
 export async function getOrCreateDemoUser() {
-  let user = await prisma.user.findFirst();
-
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email: "demo@orbita.local",
-        name: "Demo User",
-      },
-    });
+  const signedInUser = await getCurrentSessionUser();
+  if (signedInUser) {
+    return signedInUser;
   }
 
-  return user;
+  return ensureDemoAccount();
 }

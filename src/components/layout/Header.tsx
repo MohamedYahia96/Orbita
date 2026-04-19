@@ -7,6 +7,7 @@ import {
   Sun,
   Search,
   Languages,
+  LogOut,
 } from "lucide-react";
 import { Input, Avatar, Button } from "@/components/ui";
 import styles from "./Header.module.css";
@@ -57,6 +58,11 @@ export default function Header() {
     router.replace(pathWithoutLocale as "/overview", { locale: nextLocale });
   };
 
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.replace(`/${locale}/login`);
+  };
+
   return (
     <header className={styles.header}>
       <div className={styles.left}>
@@ -97,7 +103,8 @@ export default function Header() {
 
         {/* User Profile */}
         <div className={styles.profile}>
-          <Avatar name="Yahia M." size="sm" />
+          <Button variant="ghost" size="sm" icon={<LogOut size={16} />} onClick={() => void handleLogout()} aria-label="Log out" />
+          <Avatar name="Orbita" size="sm" />
         </div>
       </div>
     </header>

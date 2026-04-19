@@ -14,6 +14,25 @@
   "Dashboard": {
     "searchPlaceholder": "ابحث عن الأوامر، المحتوى، والمزيد... (Ctrl+K)"
   },
+  "Auth": {
+    "loginTitle": "تسجيل الدخول إلى أوربيتا",
+    "loginSubtitle": "استخدم حسابك للوصول إلى لوحة التحكم.",
+    "registerTitle": "إنشاء حساب أوربيتا",
+    "registerSubtitle": "أنشئ حساباً جديداً وابدأ بتنظيم مصادرك.",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "name": "الاسم الكامل",
+    "signIn": "تسجيل الدخول",
+    "createAccount": "إنشاء حساب",
+    "haveAccount": "هل لديك حساب بالفعل؟",
+    "noAccount": "جديد على أوربيتا؟",
+    "loginFailed": "فشل تسجيل الدخول.",
+    "registerFailed": "فشل إنشاء الحساب.",
+    "passwordMismatch": "كلمتا المرور غير متطابقتين.",
+    "passwordHint": "استخدم 8 أحرف على الأقل.",
+    "demoHint": "حساب تجريبي: demo@orbita.local / demo123"
+  },
   "Overview": {
     "activeFeeds": "المصادر النشطة",
     "unreadNotifs": "الإشعارات غير المقروءة",
