@@ -31,6 +31,23 @@ type FeedPayload = {
   platform: string | null;
 };
 
+type GmailLabelOption = {
+  id: string;
+  name: string;
+  type: "system" | "user" | null;
+};
+
+type DriveFolderOption = {
+  id: string;
+  name: string;
+  url: string;
+};
+
+type GoogleOAuthConfigStatus = {
+  configured: boolean;
+  source: "env" | "file" | "none";
+};
+
 const PLATFORMS = [
   { id: "custom_link", labelKey: "platformCustomLink", icon: <LinkIcon size={16} /> },
   { id: "rss", labelKey: "platformRss", icon: <Rss size={16} /> },
@@ -63,10 +80,21 @@ export function FeedManager() {
   const [gmailConnected, setGmailConnected] = useState<boolean | null>(null);
   const [gmailEmail, setGmailEmail] = useState<string | null>(null);
   const [isCheckingGmailStatus, setIsCheckingGmailStatus] = useState(false);
+  const [gmailLabels, setGmailLabels] = useState<GmailLabelOption[]>([]);
+  const [gmailLabelSearch, setGmailLabelSearch] = useState("");
+  const [isLoadingGmailLabels, setIsLoadingGmailLabels] = useState(false);
+  const [gmailLabelsError, setGmailLabelsError] = useState<string | null>(null);
+  const [useAdvancedGmailLabelInput, setUseAdvancedGmailLabelInput] = useState(false);
   const [driveFolderId, setDriveFolderId] = useState("root");
   const [driveConnected, setDriveConnected] = useState<boolean | null>(null);
   const [driveEmail, setDriveEmail] = useState<string | null>(null);
   const [isCheckingDriveStatus, setIsCheckingDriveStatus] = useState(false);
+  const [driveFolders, setDriveFolders] = useState<DriveFolderOption[]>([]);
+  const [driveFolderSearch, setDriveFolderSearch] = useState("");
+  const [isLoadingDriveFolders, setIsLoadingDriveFolders] = useState(false);
+  const [driveFoldersError, setDriveFoldersError] = useState<string | null>(null);
+  const [useAdvancedDriveFolderInput, setUseAdvancedDriveFolderInput] = useState(false);
+  const [googleOAuthConfigured, setGoogleOAuthConfigured] = useState<boolean | null>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -80,6 +108,42 @@ export function FeedManager() {
 
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback;
+
+  const mapIntegrationApiError = useCallback((data: unknown, fallback: string) => {
+    const payload = data as { code?: unknown; error?: unknown } | null;
+    const code = typeof payload?.code === "string" ? payload.code : null;
+    const error = typeof payload?.error === "string" ? payload.error : null;
+
+    if (code === "GOOGLE_OAUTH_NOT_CONFIGURED") {
+      return t("googleOAuthNotConfigured");
+    }
+
+    if (code === "GOOGLE_NOT_CONNECTED") {
+      return t("googleConnectFirst");
+    }
+
+    if (code === "GOOGLE_SCOPE_MISSING") {
+      return t("googleReconnectForScope");
+    }
+
+    return error || fallback;
+  }, [t]);
+
+  const fetchGoogleOAuthConfigStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/google/oauth-config", { cache: "no-store" });
+      const data = (await res.json().catch(() => null)) as GoogleOAuthConfigStatus | null;
+
+      if (!res.ok || !data || typeof data.configured !== "boolean") {
+        setGoogleOAuthConfigured(false);
+        return;
+      }
+
+      setGoogleOAuthConfigured(data.configured);
+    } catch {
+      setGoogleOAuthConfigured(false);
+    }
+  }, []);
 
   const extractTelegramUsername = (rawUrl: string | null) => {
     if (!rawUrl) return "";
@@ -168,11 +232,20 @@ export function FeedManager() {
   }, []);
 
   const handleConnectGmail = async () => {
+    if (googleOAuthConfigured === false) {
+      toast(t("googleOAuthNotConfigured"), "error");
+      return;
+    }
+
     try {
       const res = await fetch("/api/gmail/auth/start", { cache: "no-store" });
       const data = await res.json().catch(() => null);
 
       if (!res.ok || !data?.authUrl) {
+        if (data?.code === "GOOGLE_OAUTH_NOT_CONFIGURED") {
+          throw new Error(t("googleOAuthNotConfigured"));
+        }
+
         throw new Error(data?.error || t("gmailAuthFailed"));
       }
 
@@ -182,6 +255,44 @@ export function FeedManager() {
       toast(getErrorMessage(error, t("gmailAuthFailed")), "error");
     }
   };
+
+  const loadGmailLabels = useCallback(async () => {
+    setIsLoadingGmailLabels(true);
+    setGmailLabelsError(null);
+
+    try {
+      const res = await fetch("/api/gmail/labels", { cache: "no-store" });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(mapIntegrationApiError(data, t("gmailLabelsLoadFailed")));
+      }
+
+      const labels = Array.isArray(data?.labels)
+        ? (data.labels as Array<{ id?: unknown; name?: unknown; type?: unknown }>)
+            .filter(
+              (label): label is { id: string; name: string; type?: "system" | "user" | null } =>
+                typeof label.id === "string" && typeof label.name === "string"
+            )
+            .map((label) => ({
+              id: label.id,
+              name: label.name,
+              type: label.type === "system" || label.type === "user" ? label.type : null,
+            }))
+        : [];
+
+      setGmailLabels(labels);
+
+      if (labels.length > 0 && !labels.some((label) => label.id === gmailLabelId)) {
+        setGmailLabelId(labels[0].id);
+      }
+    } catch (error: unknown) {
+      setGmailLabelsError(getErrorMessage(error, t("gmailLabelsLoadFailed")));
+      setGmailLabels([]);
+    } finally {
+      setIsLoadingGmailLabels(false);
+    }
+  }, [gmailLabelId, mapIntegrationApiError, t]);
 
   const fetchDriveStatus = useCallback(async () => {
     setIsCheckingDriveStatus(true);
@@ -205,11 +316,20 @@ export function FeedManager() {
   }, []);
 
   const handleConnectDrive = async () => {
+    if (googleOAuthConfigured === false) {
+      toast(t("googleOAuthNotConfigured"), "error");
+      return;
+    }
+
     try {
       const res = await fetch("/api/drive/auth/start", { cache: "no-store" });
       const data = await res.json().catch(() => null);
 
       if (!res.ok || !data?.authUrl) {
+        if (data?.code === "GOOGLE_OAUTH_NOT_CONFIGURED") {
+          throw new Error(t("googleOAuthNotConfigured"));
+        }
+
         throw new Error(data?.error || t("driveAuthFailed"));
       }
 
@@ -219,6 +339,44 @@ export function FeedManager() {
       toast(getErrorMessage(error, t("driveAuthFailed")), "error");
     }
   };
+
+  const loadDriveFolders = useCallback(async () => {
+    setIsLoadingDriveFolders(true);
+    setDriveFoldersError(null);
+
+    try {
+      const res = await fetch("/api/drive/folders", { cache: "no-store" });
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(mapIntegrationApiError(data, t("driveFoldersLoadFailed")));
+      }
+
+      const folders = Array.isArray(data?.folders)
+        ? (data.folders as Array<{ id?: unknown; name?: unknown; url?: unknown }>)
+            .filter(
+              (folder): folder is { id: string; name: string; url: string } =>
+                typeof folder.id === "string" && typeof folder.name === "string" && typeof folder.url === "string"
+            )
+            .map((folder) => ({
+              id: folder.id,
+              name: folder.name,
+              url: folder.url,
+            }))
+        : [];
+
+      setDriveFolders(folders);
+
+      if (folders.length > 0 && !folders.some((folder) => folder.id === driveFolderId)) {
+        setDriveFolderId(folders[0].id);
+      }
+    } catch (error: unknown) {
+      setDriveFoldersError(getErrorMessage(error, t("driveFoldersLoadFailed")));
+      setDriveFolders([]);
+    } finally {
+      setIsLoadingDriveFolders(false);
+    }
+  }, [driveFolderId, mapIntegrationApiError, t]);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -251,6 +409,8 @@ export function FeedManager() {
       return;
     }
 
+    fetchGoogleOAuthConfigStatus();
+
     if (isGmailType) {
       fetchGmailStatus();
     }
@@ -258,7 +418,23 @@ export function FeedManager() {
     if (isDriveType) {
       fetchDriveStatus();
     }
-  }, [fetchDriveStatus, fetchGmailStatus, isDriveType, isGmailType, isModalOpen]);
+  }, [fetchDriveStatus, fetchGmailStatus, fetchGoogleOAuthConfigStatus, isDriveType, isGmailType, isModalOpen]);
+
+  useEffect(() => {
+    if (!isModalOpen || !isGmailType || !gmailConnected || useAdvancedGmailLabelInput) {
+      return;
+    }
+
+    loadGmailLabels();
+  }, [gmailConnected, isGmailType, isModalOpen, loadGmailLabels, useAdvancedGmailLabelInput]);
+
+  useEffect(() => {
+    if (!isModalOpen || !isDriveType || !driveConnected || useAdvancedDriveFolderInput) {
+      return;
+    }
+
+    loadDriveFolders();
+  }, [driveConnected, isDriveType, isModalOpen, loadDriveFolders, useAdvancedDriveFolderInput]);
 
   const handleOpenModal = (feed?: Feed) => {
     if (feed) {
@@ -274,6 +450,12 @@ export function FeedManager() {
       setGmailLabelId(gmailMetadata.labelId);
       setGmailQuery(gmailMetadata.query);
       setDriveFolderId(driveMetadata.folderId);
+      setUseAdvancedGmailLabelInput(false);
+      setUseAdvancedDriveFolderInput(false);
+      setGmailLabelSearch("");
+      setDriveFolderSearch("");
+      setGmailLabelsError(null);
+      setDriveFoldersError(null);
     } else {
       setEditingFeed(null);
       setTitle("");
@@ -285,6 +467,12 @@ export function FeedManager() {
       setGmailLabelId("INBOX");
       setGmailQuery("");
       setDriveFolderId("root");
+      setUseAdvancedGmailLabelInput(false);
+      setUseAdvancedDriveFolderInput(false);
+      setGmailLabelSearch("");
+      setDriveFolderSearch("");
+      setGmailLabelsError(null);
+      setDriveFoldersError(null);
     }
     setIsModalOpen(true);
   };
@@ -301,9 +489,17 @@ export function FeedManager() {
     setGmailQuery("");
     setGmailConnected(null);
     setGmailEmail(null);
+    setGmailLabels([]);
+    setGmailLabelSearch("");
+    setGmailLabelsError(null);
+    setUseAdvancedGmailLabelInput(false);
     setDriveFolderId("root");
     setDriveConnected(null);
     setDriveEmail(null);
+    setDriveFolders([]);
+    setDriveFolderSearch("");
+    setDriveFoldersError(null);
+    setUseAdvancedDriveFolderInput(false);
     setEditingFeed(null);
   };
 
@@ -480,11 +676,32 @@ export function FeedManager() {
     }
   };
 
+  const selectedGmailLabel = gmailLabels.find((label) => label.id === gmailLabelId) || null;
+  const selectedDriveFolder = driveFolders.find((folder) => folder.id === driveFolderId) || null;
+  const normalizedGmailLabelSearch = gmailLabelSearch.trim().toLowerCase();
+  const visibleGmailLabels = normalizedGmailLabelSearch
+    ? gmailLabels.filter(
+        (label) =>
+          label.id.toLowerCase().includes(normalizedGmailLabelSearch) ||
+          label.name.toLowerCase().includes(normalizedGmailLabelSearch)
+      )
+    : gmailLabels;
+  const normalizedDriveFolderSearch = driveFolderSearch.trim().toLowerCase();
+  const visibleDriveFolders = normalizedDriveFolderSearch
+    ? driveFolders.filter(
+        (folder) =>
+          folder.id.toLowerCase().includes(normalizedDriveFolderSearch) ||
+          folder.name.toLowerCase().includes(normalizedDriveFolderSearch)
+      )
+    : driveFolders;
+
   const isEditingFeed = Boolean(editingFeed);
   const isTelegramTokenRequired = isTelegramType && !isEditingFeed;
   const isGmailConnectionRequired = isGmailType && !isEditingFeed;
   const isDriveConnectionRequired = isDriveType && !isEditingFeed;
+  const isGmailLabelRequired = isGmailType && !useAdvancedGmailLabelInput && !selectedGmailLabel;
   const isDriveFolderRequired = isDriveType && !driveFolderId.trim();
+  const isDriveFolderPickerRequired = isDriveType && !useAdvancedDriveFolderInput && !selectedDriveFolder;
   const isFacebookUrlRequired = isFacebookType && !url.trim();
   const isSubmitDisabled =
     isSubmitting ||
@@ -492,8 +709,9 @@ export function FeedManager() {
     (isTelegramType && !telegramChannelUsername.trim()) ||
     (isTelegramTokenRequired && !telegramBotToken.trim()) ||
     (isGmailConnectionRequired && !gmailConnected) ||
+    isGmailLabelRequired ||
     (isDriveConnectionRequired && !driveConnected) ||
-    isDriveFolderRequired ||
+    (useAdvancedDriveFolderInput ? isDriveFolderRequired : isDriveFolderPickerRequired) ||
     isFacebookUrlRequired;
 
   if (isLoading) {
@@ -673,22 +891,76 @@ export function FeedManager() {
                   <Button type="button" variant="secondary" onClick={fetchGmailStatus} disabled={isCheckingGmailStatus}>
                     {t("gmailRefreshConnection")}
                   </Button>
-                  <Button type="button" onClick={handleConnectGmail}>
+                  <Button type="button" onClick={handleConnectGmail} disabled={googleOAuthConfigured === false}>
                     {t("gmailConnect")}
                   </Button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  {t("gmailLabelId")} <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  value={gmailLabelId}
-                  onChange={(e) => setGmailLabelId(e.target.value.toUpperCase())}
-                  placeholder={t("gmailLabelPlaceholder")}
-                  className="w-full"
-                />
+                <div className="flex items-center justify-between mb-1 gap-2">
+                  <label className="block text-sm font-medium">
+                    {t("gmailLabelId")} <span className="text-red-500">*</span>
+                  </label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-xs"
+                    onClick={() => setUseAdvancedGmailLabelInput((current) => !current)}
+                  >
+                    {useAdvancedGmailLabelInput ? t("gmailUseDynamicPicker") : t("gmailUseManualId")}
+                  </Button>
+                </div>
+
+                {useAdvancedGmailLabelInput ? (
+                  <Input
+                    value={gmailLabelId}
+                    onChange={(e) => setGmailLabelId(e.target.value.toUpperCase())}
+                    placeholder={t("gmailLabelPlaceholder")}
+                    className="w-full"
+                  />
+                ) : (
+                  <div className="rounded-lg border border-(--color-border) bg-(--color-bg-tertiary) p-2 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={gmailLabelSearch}
+                        onChange={(e) => setGmailLabelSearch(e.target.value)}
+                        placeholder={t("gmailLabelsSearchPlaceholder")}
+                        className="w-full"
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={loadGmailLabels}
+                        disabled={isLoadingGmailLabels}
+                      >
+                        {t("gmailLabelsRefresh")}
+                      </Button>
+                    </div>
+
+                    <select
+                      className="w-full h-10 px-3 bg-transparent border border-(--color-border) rounded-lg text-(--color-text-primary) focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                      value={gmailLabelId}
+                      onChange={(e) => setGmailLabelId(e.target.value)}
+                    >
+                      {visibleGmailLabels.map((label) => (
+                        <option key={label.id} value={label.id} className="bg-(--color-bg-primary) text-(--color-text-primary)">
+                          {label.name} ({label.id})
+                        </option>
+                      ))}
+                    </select>
+
+                    {isLoadingGmailLabels ? (
+                      <p className="text-xs opacity-70">{t("gmailLabelsLoading")}</p>
+                    ) : null}
+                    {!isLoadingGmailLabels && gmailLabelsError ? (
+                      <p className="text-xs text-red-400">{gmailLabelsError}</p>
+                    ) : null}
+                    {!isLoadingGmailLabels && !gmailLabelsError && visibleGmailLabels.length === 0 ? (
+                      <p className="text-xs opacity-70">{t("gmailLabelsEmpty")}</p>
+                    ) : null}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -720,22 +992,79 @@ export function FeedManager() {
                   <Button type="button" variant="secondary" onClick={fetchDriveStatus} disabled={isCheckingDriveStatus}>
                     {t("driveRefreshConnection")}
                   </Button>
-                  <Button type="button" onClick={handleConnectDrive}>
+                  <Button type="button" onClick={handleConnectDrive} disabled={googleOAuthConfigured === false}>
                     {t("driveConnect")}
                   </Button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  {t("driveFolderId")} <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  value={driveFolderId}
-                  onChange={(e) => setDriveFolderId(e.target.value)}
-                  placeholder={t("driveFolderPlaceholder")}
-                  className="w-full"
-                />
+                <div className="flex items-center justify-between mb-1 gap-2">
+                  <label className="block text-sm font-medium">
+                    {t("driveFolderId")} <span className="text-red-500">*</span>
+                  </label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="text-xs"
+                    onClick={() => setUseAdvancedDriveFolderInput((current) => !current)}
+                  >
+                    {useAdvancedDriveFolderInput ? t("driveUseDynamicPicker") : t("driveUseManualId")}
+                  </Button>
+                </div>
+
+                {useAdvancedDriveFolderInput ? (
+                  <Input
+                    value={driveFolderId}
+                    onChange={(e) => setDriveFolderId(e.target.value)}
+                    placeholder={t("driveFolderPlaceholder")}
+                    className="w-full"
+                  />
+                ) : (
+                  <div className="rounded-lg border border-(--color-border) bg-(--color-bg-tertiary) p-2 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={driveFolderSearch}
+                        onChange={(e) => setDriveFolderSearch(e.target.value)}
+                        placeholder={t("driveFoldersSearchPlaceholder")}
+                        className="w-full"
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={loadDriveFolders}
+                        disabled={isLoadingDriveFolders}
+                      >
+                        {t("driveFoldersRefresh")}
+                      </Button>
+                    </div>
+
+                    <select
+                      className="w-full h-10 px-3 bg-transparent border border-(--color-border) rounded-lg text-(--color-text-primary) focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                      value={driveFolderId}
+                      onChange={(e) => setDriveFolderId(e.target.value)}
+                    >
+                      {visibleDriveFolders.map((folder) => (
+                        <option key={folder.id} value={folder.id} className="bg-(--color-bg-primary) text-(--color-text-primary)">
+                          {folder.name} ({folder.id})
+                        </option>
+                      ))}
+                    </select>
+
+                    {selectedDriveFolder ? (
+                      <p className="text-xs opacity-70 truncate">{selectedDriveFolder.url}</p>
+                    ) : null}
+                    {isLoadingDriveFolders ? (
+                      <p className="text-xs opacity-70">{t("driveFoldersLoading")}</p>
+                    ) : null}
+                    {!isLoadingDriveFolders && driveFoldersError ? (
+                      <p className="text-xs text-red-400">{driveFoldersError}</p>
+                    ) : null}
+                    {!isLoadingDriveFolders && !driveFoldersError && visibleDriveFolders.length === 0 ? (
+                      <p className="text-xs opacity-70">{t("driveFoldersEmpty")}</p>
+                    ) : null}
+                  </div>
+                )}
               </div>
             </>
           ) : (

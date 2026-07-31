@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { getGoogleOAuthConfigForRuntime } from "@/lib/google-oauth-config";
 
 type GoogleOAuthTokenResponse = {
   access_token?: string;
@@ -18,6 +19,16 @@ type GmailMessageRef = {
 
 type GmailListMessagesResponse = {
   messages?: GmailMessageRef[];
+};
+
+type GmailLabelResponse = {
+  id?: string;
+  name?: string;
+  type?: "system" | "user";
+};
+
+type GmailListLabelsResponse = {
+  labels?: GmailLabelResponse[];
 };
 
 type GmailHeader = {
@@ -52,6 +63,12 @@ export type GmailFetchResult = {
   items: GmailFetchedItem[];
 };
 
+export type GmailLabelOption = {
+  id: string;
+  name: string;
+  type: "system" | "user" | null;
+};
+
 type FetchGmailItemsOptions = {
   userId: string;
   labelIds?: string[];
@@ -71,6 +88,8 @@ const GMAIL_API_BASE_URL = "https://gmail.googleapis.com/gmail/v1/users/me";
 const GOOGLE_USERINFO_EMAIL_SCOPE = "https://www.googleapis.com/auth/userinfo.email";
 export const GOOGLE_GMAIL_READONLY_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
 export const GOOGLE_DRIVE_READONLY_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+export const GOOGLE_OAUTH_MISSING_ENV_ERROR =
+  "Missing Google OAuth environment variables. Expected GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI.";
 const GOOGLE_OAUTH_SCOPES = [
   GOOGLE_GMAIL_READONLY_SCOPE,
   GOOGLE_DRIVE_READONLY_SCOPE,
@@ -95,20 +114,16 @@ export function hasGoogleScope(scope: string | null | undefined, requiredScope: 
 }
 
 function getGoogleOAuthEnv() {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI;
+  const runtimeConfig = getGoogleOAuthConfigForRuntime();
 
-  if (!clientId || !clientSecret || !redirectUri) {
-    throw new Error(
-      "Missing Google OAuth environment variables. Expected GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI."
-    );
+  if (!runtimeConfig.config) {
+    throw new Error(GOOGLE_OAUTH_MISSING_ENV_ERROR);
   }
 
   return {
-    clientId,
-    clientSecret,
-    redirectUri,
+    clientId: runtimeConfig.config.clientId,
+    clientSecret: runtimeConfig.config.clientSecret,
+    redirectUri: runtimeConfig.config.redirectUri,
   };
 }
 
@@ -398,6 +413,29 @@ export async function ensureGoogleAccessToken(userId: string) {
     accessToken: updatedToken.accessToken,
     email: updatedToken.email,
   };
+}
+
+export async function listGmailLabelsForUser(userId: string): Promise<GmailLabelOption[]> {
+  const { accessToken } = await ensureGoogleAccessToken(userId);
+  const listUrl = `${GMAIL_API_BASE_URL}/labels`;
+  const response = await callGmailApi<GmailListLabelsResponse>(accessToken, listUrl);
+  const labels = response.labels || [];
+
+  const normalized = labels
+    .filter((label): label is GmailLabelResponse & { id: string; name: string } => {
+      return typeof label.id === "string" && label.id.trim().length > 0 && typeof label.name === "string";
+    })
+    .map((label) => ({
+      id: label.id,
+      name: label.name,
+      type: label.type || null,
+    }));
+
+  return normalized.sort((left, right) => {
+    if (left.id === "INBOX") return -1;
+    if (right.id === "INBOX") return 1;
+    return left.name.localeCompare(right.name, undefined, { sensitivity: "base" });
+  });
 }
 
 function normalizeLabelIds(labelIds: string[] | undefined) {

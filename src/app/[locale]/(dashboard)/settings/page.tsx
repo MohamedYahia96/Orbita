@@ -45,6 +45,13 @@ type RuleFormState = {
   enabled: boolean;
 };
 
+type GoogleOAuthConfigStatus = {
+  configured: boolean;
+  source: "env" | "file" | "none";
+  redirectUri: string | null;
+  clientIdMasked: string | null;
+};
+
 const DEFAULT_RULE_FORM: RuleFormState = {
   name: "",
   keyword: "",
@@ -66,6 +73,67 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [googleConfigStatus, setGoogleConfigStatus] = useState<GoogleOAuthConfigStatus | null>(null);
+  const [googleClientId, setGoogleClientId] = useState("");
+  const [googleClientSecret, setGoogleClientSecret] = useState("");
+  const [googleRedirectUri, setGoogleRedirectUri] = useState("http://localhost:3000/api/gmail/auth/callback");
+  const [googleConfigMessage, setGoogleConfigMessage] = useState<string | null>(null);
+  const [isSavingGoogleConfig, setIsSavingGoogleConfig] = useState(false);
+
+  const loadGoogleOAuthConfigStatus = useCallback(async () => {
+    try {
+      const res = await fetch("/api/google/oauth-config", { cache: "no-store" });
+      const data = (await res.json().catch(() => null)) as GoogleOAuthConfigStatus | null;
+
+      if (!res.ok || !data) {
+        throw new Error();
+      }
+
+      setGoogleConfigStatus(data);
+      if (typeof data.redirectUri === "string" && data.redirectUri.trim()) {
+        setGoogleRedirectUri(data.redirectUri);
+      }
+    } catch {
+      setGoogleConfigStatus(null);
+    }
+  }, []);
+
+  const saveGoogleOAuthConfig = async () => {
+    setGoogleConfigMessage(null);
+    setIsSavingGoogleConfig(true);
+
+    try {
+      const res = await fetch("/api/google/oauth-config", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clientId: googleClientId,
+          clientSecret: googleClientSecret,
+          redirectUri: googleRedirectUri,
+        }),
+      });
+
+      const data = (await res.json().catch(() => null)) as { error?: string } & GoogleOAuthConfigStatus;
+      if (!res.ok) {
+        throw new Error(data?.error || t("googleOAuthSaveFailed"));
+      }
+
+      setGoogleConfigStatus({
+        configured: Boolean(data?.configured),
+        source: data?.source || "file",
+        redirectUri: data?.redirectUri || null,
+        clientIdMasked: data?.clientIdMasked || null,
+      });
+      setGoogleClientSecret("");
+      setGoogleConfigMessage(t("googleOAuthSaveSuccess"));
+    } catch (saveError: unknown) {
+      setGoogleConfigMessage(saveError instanceof Error ? saveError.message : t("googleOAuthSaveFailed"));
+    } finally {
+      setIsSavingGoogleConfig(false);
+    }
+  };
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -94,6 +162,10 @@ export default function SettingsPage() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    void loadGoogleOAuthConfigStatus();
+  }, [loadGoogleOAuthConfigStatus]);
 
   const canSubmit = useMemo(() => {
     const hasCondition = Boolean(form.keyword.trim() || form.sender.trim() || form.feedId);
@@ -196,7 +268,60 @@ export default function SettingsPage() {
       
       <Card title={t("integrationsTitle")} padding="lg">
         <p className="text-secondary mb-4">{t("integrationsDesc")}</p>
-        <div style={{ height: "40px", width: "100%", background: "var(--color-bg-hover)", borderRadius: "var(--radius-sm)" }}></div>
+        <div style={{ display: "grid", gap: "var(--space-2)" }}>
+          <p className="text-sm">
+            {googleConfigStatus?.configured ? t("googleOAuthConfigured") : t("googleOAuthNotConfiguredYet")}
+          </p>
+          <p className="text-xs text-secondary">
+            {t("googleOAuthCurrentSource")}: {googleConfigStatus?.source || "none"}
+          </p>
+          {googleConfigStatus?.clientIdMasked ? (
+            <p className="text-xs text-secondary">{t("googleOAuthClientIdMasked")}: {googleConfigStatus.clientIdMasked}</p>
+          ) : null}
+
+          <input
+            className="h-10 rounded-md border border-(--color-border) bg-transparent px-3"
+            placeholder={t("googleOAuthClientId")}
+            value={googleClientId}
+            onChange={(event) => setGoogleClientId(event.target.value)}
+          />
+
+          <input
+            className="h-10 rounded-md border border-(--color-border) bg-transparent px-3"
+            placeholder={t("googleOAuthClientSecret")}
+            value={googleClientSecret}
+            onChange={(event) => setGoogleClientSecret(event.target.value)}
+            type="password"
+          />
+
+          <input
+            className="h-10 rounded-md border border-(--color-border) bg-transparent px-3"
+            placeholder={t("googleOAuthRedirectUri")}
+            value={googleRedirectUri}
+            onChange={(event) => setGoogleRedirectUri(event.target.value)}
+          />
+
+          <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="h-9 rounded-md bg-(--color-accent) px-4 text-sm font-medium text-white border-none cursor-pointer"
+              onClick={() => void saveGoogleOAuthConfig()}
+              disabled={isSavingGoogleConfig}
+            >
+              {isSavingGoogleConfig ? t("googleOAuthSaving") : t("googleOAuthSave")}
+            </button>
+
+            <button
+              type="button"
+              className="h-9 rounded-md border border-(--color-border) bg-transparent px-4 text-sm cursor-pointer"
+              onClick={() => void loadGoogleOAuthConfigStatus()}
+            >
+              {t("googleOAuthRefresh")}
+            </button>
+          </div>
+
+          {googleConfigMessage ? <p className="text-xs">{googleConfigMessage}</p> : null}
+        </div>
       </Card>
 
       <Card title={t("rulesTitle")} padding="lg">

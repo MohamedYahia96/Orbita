@@ -30,6 +30,16 @@ type DriveListResponse = {
   nextPageToken?: string;
 };
 
+type DriveFolderListEntry = {
+  id?: string;
+  name?: string;
+  webViewLink?: string;
+};
+
+type DriveFolderListResponse = {
+  files?: DriveFolderListEntry[];
+};
+
 export type DriveFetchedItem = {
   title: string;
   link: string;
@@ -48,6 +58,12 @@ export type DriveFetchResult = {
   items: DriveFetchedItem[];
 };
 
+export type DriveFolderOption = {
+  id: string;
+  name: string;
+  url: string;
+};
+
 type ResolveDriveFolderForUserOptions = {
   userId: string;
   folderId?: string | null;
@@ -56,6 +72,12 @@ type ResolveDriveFolderForUserOptions = {
 type FetchDriveFeedItemsOptions = {
   userId: string;
   folderId?: string | null;
+  pageSize?: number;
+};
+
+type ListDriveFoldersOptions = {
+  userId: string;
+  searchQuery?: string | null;
   pageSize?: number;
 };
 
@@ -239,4 +261,50 @@ export async function fetchDriveFeedItems({
     folderName: resolvedFolder.folderName,
     items,
   };
+}
+
+export async function listDriveFoldersForUser({
+  userId,
+  searchQuery,
+  pageSize = 100,
+}: ListDriveFoldersOptions): Promise<DriveFolderOption[]> {
+  const { accessToken } = await ensureGoogleAccessToken(userId);
+  const boundedPageSize = Math.min(Math.max(Math.floor(pageSize), 1), 200);
+
+  const queryParts = [
+    `mimeType = '${DRIVE_FOLDER_MIME_TYPE}'`,
+    "trashed = false",
+  ];
+
+  if (searchQuery && searchQuery.trim()) {
+    queryParts.push(`name contains '${escapeDriveQueryLiteral(searchQuery.trim())}'`);
+  }
+
+  const listUrl = new URL(`${DRIVE_API_BASE_URL}/files`);
+  listUrl.searchParams.set("q", queryParts.join(" and "));
+  listUrl.searchParams.set("orderBy", "name_natural asc");
+  listUrl.searchParams.set("pageSize", String(boundedPageSize));
+  listUrl.searchParams.set("fields", "files(id,name,webViewLink)");
+  listUrl.searchParams.set("supportsAllDrives", "true");
+  listUrl.searchParams.set("includeItemsFromAllDrives", "true");
+
+  const response = await callDriveApi<DriveFolderListResponse>(accessToken, listUrl.toString());
+  const folders = (response.files || [])
+    .filter((file): file is DriveFolderListEntry & { id: string; name: string } => {
+      return typeof file.id === "string" && file.id.trim().length > 0 && typeof file.name === "string";
+    })
+    .map((file) => ({
+      id: file.id,
+      name: file.name,
+      url: file.webViewLink || buildDriveFolderUrl(file.id),
+    }));
+
+  const root: DriveFolderOption = {
+    id: DEFAULT_DRIVE_FOLDER_ID,
+    name: "My Drive",
+    url: buildDriveFolderUrl(DEFAULT_DRIVE_FOLDER_ID),
+  };
+
+  const withoutRoot = folders.filter((folder) => folder.id !== DEFAULT_DRIVE_FOLDER_ID);
+  return [root, ...withoutRoot];
 }
