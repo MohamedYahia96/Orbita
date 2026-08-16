@@ -370,16 +370,16 @@
 - [x] Installable على Desktop + Mobile
 
 ### 4.13 اختبار المرحلة 4
-- [ ] Telegram Bot يعمل
-- [ ] Gmail يظهر آخر الرسائل
-- [ ] Google Drive يظهر الملفات
-- [ ] Onboarding Wizard يعمل
-- [ ] Widgets drag & drop يعمل
-- [ ] Focus Mode يعمل
-- [ ] Status Page يعرض الحالات
-- [ ] Alert Rules تعمل
-- [ ] Analytics تعرض بيانات
-- [ ] PWA قابل للتثبيت
+- [x] Telegram Bot يعمل
+- [x] Gmail يظهر آخر الرسائل
+- [x] Google Drive يظهر الملفات
+- [x] Onboarding Wizard يعمل
+- [x] Widgets drag & drop يعمل
+- [x] Focus Mode يعمل
+- [x] Status Page يعرض الحالات
+- [x] Alert Rules تعمل
+- [x] Analytics تعرض بيانات
+- [x] PWA قابل للتثبيت
 
 ---
 

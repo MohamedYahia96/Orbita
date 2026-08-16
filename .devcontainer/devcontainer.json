@@ -1,0 +1,25 @@
+{
+  "name": "Orbita",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "postCreateCommand": "npm install",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Orbita App",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "prisma.prisma",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  }
+}
