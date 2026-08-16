@@ -350,24 +350,24 @@
 - [x] جدول تلقائي (اختياري)
 
 ### 4.9 Status Page
-- [ ] API: `GET /api/status` — حالة كل تكامل
-- [ ] UI: عرض حالة كل Feed (🟢🟡🔴)
-- [ ] آخر فحص + Retry button
+- [x] API: `GET /api/status` — حالة كل تكامل
+- [x] UI: عرض حالة كل Feed (🟢🟡🔴)
+- [x] آخر فحص + Retry button
 
 ### 4.10 Custom Alert Rules
-- [ ] CRUD AlertRules
-- [ ] محرك قواعد: IF keyword → THEN action
-- [ ] تنفيذ الإجراءات: push, bookmark, tag
+- [x] CRUD AlertRules
+- [x] محرك قواعد: IF keyword → THEN action
+- [x] تنفيذ الإجراءات: push, bookmark, tag
 
 ### 4.11 Analytics Dashboard  
-- [ ] إحصائيات: أكثر المصادر نشاطاً، عدد الإشعارات، وقت الذروة
-- [ ] Charts بـ Recharts
+- [x] إحصائيات: أكثر المصادر نشاطاً، عدد الإشعارات، وقت الذروة
+- [x] Charts بـ Recharts
 
 ### 4.12 PWA
-- [ ] `public/manifest.json`
-- [ ] أيقونات بكل الأحجام
-- [ ] تسجيل Service Worker
-- [ ] Installable على Desktop + Mobile
+- [x] `public/manifest.json`
+- [x] أيقونات بكل الأحجام
+- [x] تسجيل Service Worker
+- [x] Installable على Desktop + Mobile
 
 ### 4.13 اختبار المرحلة 4
 - [ ] Telegram Bot يعمل
