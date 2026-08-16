@@ -14,12 +14,17 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { Button, Card } from "@/components/ui";
 import {
   DASHBOARD_WIDGET_IDS,
   type DashboardWidgetId,
+  type DashboardLayoutState,
 } from "@/lib/dashboard-layout";
 import styles from "./WidgetGrid.module.css";
+import { Responsive, WidthProvider, type Layout } from "react-grid-layout";
+import "react-grid-layout/css/styles.css";
+import "react-resizable/css/styles.css";
+
+const ResponsiveGridLayout = WidthProvider(Responsive);
 
 type FeedSummary = {
   id: string;
@@ -108,6 +113,8 @@ export function WidgetGrid() {
   const [dashboardData, setDashboardData] = useState<DashboardData>(EMPTY_DASHBOARD_DATA);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [layoutState, setLayoutState] = useState<DashboardLayoutState | null>(null);
+  const [isLayoutSaving, setIsLayoutSaving] = useState(false);
 
   const refreshWidgetsData = useCallback(async (manualRefresh = false) => {
     if (manualRefresh) {
@@ -117,7 +124,7 @@ export function WidgetGrid() {
     }
 
     try {
-      const [feedsRes, notificationsRes, digestRes, readingListRes, timelineRes, sportsRes] =
+      const [feedsRes, notificationsRes, digestRes, readingListRes, timelineRes, sportsRes, layoutRes] =
         await Promise.all([
           fetch("/api/feeds", { cache: "no-store" }),
           fetch("/api/notifications", { cache: "no-store" }),
@@ -125,6 +132,7 @@ export function WidgetGrid() {
           fetch("/api/reading-list", { cache: "no-store" }),
           fetch("/api/timeline", { cache: "no-store" }),
           fetch("/api/sports/today?limit=10", { cache: "no-store" }),
+          fetch("/api/users/layout", { cache: "no-store" }),
         ]);
 
       const feedsPayload = (await feedsRes.json().catch(() => null)) as FeedSummary[] | null;
@@ -154,6 +162,7 @@ export function WidgetGrid() {
             }>;
           }
         | null;
+      const layoutPayload = (await layoutRes.json().catch(() => null)) as DashboardLayoutState | null;
 
       const feeds = Array.isArray(feedsPayload) ? feedsPayload : [];
       const notifications = Array.isArray(notificationsPayload?.notifications)
@@ -201,6 +210,10 @@ export function WidgetGrid() {
         sportsMatches: sportsMatches.length,
         sportsLiveMatches,
       });
+
+      if (layoutPayload) {
+        setLayoutState(layoutPayload);
+      }
     } catch {
       setDashboardData((current) => current);
     } finally {
@@ -215,6 +228,43 @@ export function WidgetGrid() {
   useEffect(() => {
     void refreshWidgetsData(false);
   }, [refreshWidgetsData]);
+
+  const handleLayoutChange = useCallback(
+    async (currentLayout: Layout[]) => {
+      if (!layoutState) return;
+
+      const newLayoutState: DashboardLayoutState = {
+        ...layoutState,
+        layout: currentLayout.map((l) => ({
+          i: l.i as DashboardWidgetId,
+          x: l.x,
+          y: l.y,
+          w: l.w,
+          h: l.h,
+          minW: l.minW,
+          minH: l.minH,
+          maxW: l.maxW,
+          maxH: l.maxH,
+        })),
+      };
+
+      setLayoutState(newLayoutState);
+      setIsLayoutSaving(true);
+      
+      try {
+        await fetch("/api/users/layout", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newLayoutState),
+        });
+      } catch (error) {
+        console.error("Failed to save layout", error);
+      } finally {
+        setIsLayoutSaving(false);
+      }
+    },
+    [layoutState]
+  );
 
   const widgetDefinitions = useMemo<Record<DashboardWidgetId, WidgetDefinition>>(
     () => ({
@@ -405,28 +455,35 @@ export function WidgetGrid() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isLoading || !layoutState ? (
         <Card padding="md" variant="glass">
           <p>{t("dashboardLayoutLoading")}</p>
         </Card>
       ) : (
         <div className={styles.gridRoot}>
-          <div className={styles.fixedGrid}>
-            {DASHBOARD_WIDGET_IDS.map((widgetId) => {
+          {isLayoutSaving && <div className="text-xs text-secondary mb-2 text-right">Saving layout...</div>}
+          <ResponsiveGridLayout
+            className="layout"
+            layouts={{ lg: layoutState.layout }}
+            breakpoints={{ lg: 1080, md: 920, sm: 760, xs: 520, xxs: 0 }}
+            cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+            rowHeight={40}
+            onLayoutChange={handleLayoutChange}
+            draggableHandle=".widget-drag-handle"
+            margin={[16, 16]}
+          >
+            {layoutState.enabledWidgets.map((widgetId) => {
               const widget = widgetDefinitions[widgetId];
+              if (!widget) return null;
               return (
-                <div
-                  key={widget.id}
-                  className={`${styles.widgetGridItem} ${WIDGET_SPAN_CLASS_NAMES[widget.id]}`}
-                >
+                <div key={widget.id} className={styles.widgetGridItem}>
                   <article className={styles.widgetShell}>
-                    <header className={styles.widgetHeader}>
+                    <header className={`${styles.widgetHeader} widget-drag-handle`} style={{ cursor: "grab" }}>
                       <span className={styles.widgetTitle}>
                         <span className={styles.widgetIcon}>{widget.icon}</span>
                         <span className={styles.widgetLabel}>{widget.title}</span>
                       </span>
                     </header>
-
                     <div className={styles.widgetBody}>
                       <p className={styles.widgetDescription}>{widget.description}</p>
                       {widget.content}
@@ -435,7 +492,7 @@ export function WidgetGrid() {
                 </div>
               );
             })}
-          </div>
+          </ResponsiveGridLayout>
         </div>
       )}
     </section>

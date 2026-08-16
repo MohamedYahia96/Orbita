@@ -300,28 +300,29 @@
 ## Phase 4 — Advanced 🔌
 
 ### 4.1 Telegram Bot Integration
-- [ ] خدمة `services/telegramService.ts`
-- [ ] إعداد Bot مع grammy
-- [ ] ربط قناة/جروب بالداشبورد
-- [ ] استقبال رسائل → حفظ كـ FeedItems
-- [ ] إشعارات عند رسالة جديدة
+- [x] خدمة `services/telegramService.ts`
+- [x] إعداد Bot مع grammy (استخدمنا Polling API بدل Grammy للتبسيط والمزامنة مع الكرون)
+- [x] ربط قناة/جروب بالداشبورد
+- [x] استقبال رسائل → حفظ كـ FeedItems
+- [x] إشعارات عند رسالة جديدة
 
 ### 4.2 Gmail Integration
-- [ ] Google Cloud Project + OAuth2 Consent Screen
-- [ ] خدمة `services/gmailService.ts`
-- [ ] OAuth2 flow → حفظ tokens
-- [ ] جلب آخر الرسائل
-- [ ] إشعار عند رسالة جديدة
+- [x] Google Cloud Project + OAuth2 Consent Screen
+- [x] خدمة `services/gmailService.ts`
+- [x] OAuth2 flow → حفظ tokens
+- [x] جلب آخر الرسائل
+- [x] إشعار عند رسالة جديدة
 
 ### 4.3 Google Drive Integration
-- [ ] خدمة `services/driveService.ts`
-- [ ] OAuth2 (نفس Google Token)
-- [ ] مراقبة مجلد محدد
-- [ ] إشعار عند رفع ملف
+- [x] خدمة `services/driveService.ts`
+- [x] OAuth2 (نفس Google Token)
+- [x] مراقبة مجلد محدد
+- [x] إشعار عند رفع ملف
 
 ### 4.4 Facebook RSS
-- [ ] تكامل مع خدمة RSS وسيطة
-- [ ] جلب منشورات الصفحات العامة
+- [x] تكامل مع خدمة RSS وسيطة
+- [x] جلب منشورات الصفحات العامة
+
 
 ### 4.5 Sports APIs
 - [ ] تكامل مع football-data.org أو بديل
@@ -336,10 +337,10 @@
 - [ ] Step 5: إنهاء + جولة سريعة
 
 ### 4.7 Drag & Drop Widgets
-- [ ] مكتبة DnD (react-grid-layout أو dnd-kit)
-- [ ] Widgets: Feed Activity, Notifications, Sports, Email, Git, Digest, Saved, Quick Links
-- [ ] حفظ layout المستخدم في DB
-- [ ] إضافة/إزالة/resize widgets
+- [x] مكتبة DnD (react-grid-layout أو dnd-kit)
+- [x] Widgets: Feed Activity, Notifications, Sports, Email, Git, Digest, Saved, Quick Links
+- [x] حفظ layout المستخدم في DB
+- [x] إضافة/إزالة/resize widgets
 
 ### 4.8 Focus Mode
 - [x] UI: زر Focus في Header
